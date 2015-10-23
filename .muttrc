@@ -1,0 +1,178 @@
+#===================
+# Account Settings
+#===================
+set mbox_type=Maildir
+set use_from="yes"
+set envelope_from="yes"
+
+source ~/.mutt/private
+
+set tmpdir="~/.tmp"
+set header_cache=~/.mutt/.cache
+set move=no
+
+#===================
+# Header
+#===================
+# Ignore all lines by default...
+ignore *
+
+# Display the fields in this order
+unignore From: To Cc Date Reply-To X-Mailer X-Url User-Agent Subject
+hdr_order Date From To Cc Reply-To Subject
+
+#set in_reply_to="%i"
+set quote_regexp="^(\[[A-Za-z0-9_.: \-]*\][ ]*)"
+set forw_format="FWD:[%s]"
+
+
+#===================
+# Encoding
+#===================
+set file_charset="iso-2022-jp:euc-jp:shift_jis:utf-8"
+set assumed_charset="iso-2022-jp:euc-jp:shift_jis:utf-8"
+set charset="utf-8"
+set send_charset="us-ascii:iso-2022-jp"
+#set sanitize_ja_chars=yes
+set thorough_search=yes
+set rfc2047_parameters=yes
+set forward_decode=yes
+set mime_forward_decode=no
+set edit_headers=yes
+
+#===================
+# Statusbar
+#===================
+#set status_on_top
+set status_chars="─*%A"
+#set status_format=
+set status_format="──<%f (%u/%m) %lB>%>─(%P)"
+
+#===================
+# Sidebar
+#===================
+set sidebar_visible=yes
+set sidebar_delim=' │'
+set sidebar_width=30
+set sidebar_sort=yes
+
+
+#===================
+# Pager
+#===================
+set pager_context=1
+set pager_index_lines=10
+set menu_scroll
+set pgp_verify_sig=no
+#set pager_format="%-10.10i %[!%a %b %d %R]"
+#set date_format="!%H:%M %a %d %b     "
+set index_format="%2C %Z %[%m/%d %H:%m] %-15.15F %s"
+set folder_format="%2C%t%N %-20f %d %4s"
+set sort=threads
+set tilde=yes
+set allow_8bit=no
+
+# --- hook
+#send-hook . 'set signature="~/.signature"'
+#send-hook . 'set attribution="%d において\n%n さん曰く:\n"'
+#send-hook \.jp$     'set signature="~/.signature"'
+#send-hook \.jp$     'set attribution="%d において\n%n さん曰く:\n"'
+#send-hook \.(com|de|se|mx|ro|edu|net)$     'set signature="~/.signature"'
+#send-hook \.(com|de|se|mx|ro|edu|net)$     'set attribution="On %d,\n%f wrote:\n"'
+
+#folder-hook . 'unlists *'
+#folder-hook . 'set sort=threads'
+#folder-hook outbox 'set sort=date-sent'
+#folder-hook <!> 'lists aaa bbb'
+#folder-hook aaa 'lists aaa bbb'
+#
+# --- general
+set nomove
+#set mailcap_path="$HOME/.mailcap:/etc/mailcap"
+set abort_nosubject=no
+set metoo
+set noabort_unmodified
+set mark_old=no
+
+# Postfix and qmail use Delivered-To for detecting loops
+unset bounce_delivered
+
+#===================
+# External Apps
+#===================
+# editor
+set editor="vim %s"
+auto_view text/html
+alternative_order text/plain text/enriched text/html
+# --- macro
+#macro index G "!/usr/bin/fetchmail\n"
+
+
+#===================
+# Key Bindings
+#===================
+bind pager / search
+bind pager k previous-line
+bind pager j next-line
+bind pager gg top
+bind pager G bottom
+bind index gg first-entry
+bind index G last-entry
+bind pager \cj next-thread
+bind pager \ck previous-thread
+bind pager u exit
+bind index,pager \cn sidebar-next
+bind index,pager \cp sidebar-prev
+bind index,pager \co sidebar-open
+bind index,pager |enter> sidebar-open
+macro index Z '<enter-command>toggle sidebar_visible<enter><refresh>'
+macro pager Z '<enter-command>toggle sidebar_visible<enter><redraw-screen>'
+
+# Show documentation when pressing F1
+macro generic,pager <F1> "<shell-escape> zcat /usr/share/doc/mutt/manual.txt.gz | sensible-pager<enter>" "show Mutt documentation"
+# show the incoming mailboxes list (just like "mutt -y") and back when pressing "y"
+macro index,pager y "<change-folder>?<toggle-mailboxes>" "show incoming mailboxes list"
+
+
+#===================
+# Color
+#===================
+color normal default default
+color status brightdefault default
+
+color error red default
+color indicator brightyellow default
+color tilde black default
+color hdrdefault cyan default
+color tree green default
+color index brightblue default ~U 
+color index brightdefault default ~Q
+
+#color header	brightcyan black ^To:
+#color header	brightcyan black ^Reply-To:
+#color header	brightcyan black ^Cc:
+color header yellow default "^(Subject|From|Date):"
+color body magenta default [\-\.+_a-zA-Z0-9]+@[\-\.a-zA-Z0-9]+
+color body magenta default (https?|ftp)://[\-\.,/%~_:?&=\#a-zA-Z0-9]+
+color bold brightgreen default
+color underline cyan default
+color signature blue default
+color attachment white default
+
+#===================
+# GNU PGP
+#===================
+#set pgp_decode_command="gpg --status-fd=2 %?p?--passphrase-fd 0? --no-verbose --quiet --batch --output - %f"
+#set pgp_verify_command="gpg --status-fd=2 --no-verbose --quiet --batch --output - --verify %s %f"
+#set pgp_decrypt_command="gpg --status-fd=2 %?p?--passphrase-fd 0? --no-verbose --quiet --batch --output - %f"
+#set pgp_sign_command="gpg --no-verbose --batch --quiet --output - %?p?--passphrase-fd 0? --armor --detach-sign --textmode %?a?-u %a? %f"
+#set pgp_clearsign_command="gpg --no-verbose --batch --quiet --output - %?p?--passphrase-fd 0? --armor --textmode --clearsign %?a?-u %a? %f"
+#set pgp_encrypt_only_command="/usr/lib/mutt/pgpewrap gpg --batch --quiet --no-verbose --output - --encrypt --textmode --armor --always-trust -- -r %r -- %f"
+#set pgp_encrypt_sign_command="/usr/lib/mutt/pgpewrap gpg %?p?--passphrase-fd 0? --batch --quiet --no-verbose --textmode --output - --encrypt --sign %?a?-u %a? --armor --always-trust -- -r %r -- %f"
+#set pgp_import_command="gpg --no-verbose --import %f"
+#set pgp_export_command="gpg --no-verbose --export --armor %r"
+#set pgp_verify_key_command="gpg --verbose --batch --fingerprint --check-sigs %r"
+#set pgp_list_pubring_command="gpg --no-verbose --batch --quiet --with-colons --list-keys %r" 
+#set pgp_list_secring_command="gpg --no-verbose --batch --quiet --with-colons --list-secret-keys %r" 
+#set pgp_good_sign="^\\[GNUPG:\\] GOODSIG"
+

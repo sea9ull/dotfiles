@@ -1,0 +1,165 @@
+"=========================================
+"    Description: .virc
+"         Author: ryo nakamura
+"  Last Modified: 2015-10-20 07:03
+"        Version: 2.00
+"=========================================
+set nocompatible
+let $RUNTIME = $HOME.'/.vim'
+
+inoremap <ESC> <ESC>:set iminsert=0<CR>
+
+"----------------------------------------
+" File Encoding
+"----------------------------------------
+set encoding=utf-8
+set fileencodings=iso-2022-jp,cp932,sjis,euc-jp,utf-8
+set fileformats=unix,dos,mac
+
+"----------------------------------------
+" System Settings
+"----------------------------------------
+" not make  backupfile, swapfile, viminfo
+set nowritebackup
+set nobackup
+set noswapfile
+set viminfo=
+
+" sharing clipboard
+" #on ubuntu
+set clipboard=unnamedplus
+" #on otherUnix/Linux
+"set clipboard+=unnamed,autoselect
+
+set nrformats-=octal
+set timeout timeoutlen=3000 ttimeoutlen=100
+set hidden
+set history=1000
+set formatoptions+=mM
+set virtualedit=block
+set whichwrap=b,s,[,],<,>
+set backspace=indent,eol,start
+
+set undodir=$RUNTIME.'\undo'
+"set ambiwidth=double
+set wildmenu
+
+"----------------------------------------
+" Search
+"----------------------------------------
+set ignorecase
+set smartcase
+set wrapscan
+set incsearch
+set hlsearch
+set iskeyword=a-z,A-Z,48-57,_,.,-,>
+set grepprg=internal
+
+"----------------------------------------
+" View Settings
+"----------------------------------------
+" not show splash message
+set shortmess+=I
+" non beep
+set noerrorbells
+set novisualbell
+set visualbell t_vb=
+
+" show column number
+set number
+set ruler
+"set cursorline
+
+set showmatch matchtime=1
+hi MatchParen ctermbg=1
+" tab size
+set ts=2 sw=2 sts=2
+
+set autoindent
+" C indent settings
+set cinoptions+=:0
+
+set title
+set showcmd
+set cmdheight=1
+set laststatus=0
+
+set display=lastline
+" not return text at line length
+set nowrap
+
+" show tab, trail, eol
+set list
+"set listchars=tab:▸\ ,trail:_,eol:⇃
+set listchars=tab:▸\ ,trail:▹
+
+"----------------------------------------
+" Keybind
+"----------------------------------------
+
+inoremap { {}<LEFT>
+inoremap [ []<LEFT>
+inoremap ( ()<LEFT>
+inoremap " ""<LEFT>
+inoremap ' ''<LEFT>
+vnoremap { "zdi{<C-R>z}<ESC>
+vnoremap [ "zdi[<C-R>z]<ESC>
+vnoremap ( "zdi(<C-R>z)<ESC>
+vnoremap " "zdi"<C-R>z"<ESC>
+vnoremap ' "zdi'<C-R>z'<ESC>
+nnoremap ; :
+nnoremap : ;
+nnoremap <silent> <C-W>\ :vs<CR>
+nnoremap <silent> <C-W>- :split<CR>
+
+nnoremap ZZ <Nop>
+nnoremap <Down> gj
+nnoremap <Up>   gk
+nnoremap h <Left>zv
+nnoremap j gj
+nnoremap k gk
+nnoremap l <Right>zv
+nnoremap <C-@> <ESC>
+nnoremap ,tg :!ctags -R<CR>
+nnoremap <Leader>tt :TagbarToggle<Enter>
+
+nnoremap <silent> <S-Left>  :5wincmd <<CR>
+nnoremap <silent> <S-Right> :5wincmd ><CR>
+nnoremap <silent> <S-Up>    :5wincmd -<CR>
+nnoremap <silent> <S-Down>  :5wincmd +<CR>
+
+"----------------------------------------
+" Binary Mode
+"----------------------------------------
+augroup BinaryXXD
+  autocmd!
+  autocmd BufReadPre  *.bin let &binary =1
+  autocmd BufReadPost * if &binary | silent %!xxd -g 1
+  autocmd BufReadPost * set ft=xxd | endif
+  autocmd BufWritePre * if &binary | %!xxd -r | endif
+  autocmd BufWritePost * if &binary | silent %!xxd -g 1
+  autocmd BufWritePost * set nomod | endif
+augroup END
+
+
+"===========================
+" ColorScheme Settings
+"===========================
+colorscheme default
+
+set t_Co=256
+if &t_Co > 2 || has('gui_running')
+  syntax on
+endif
+
+if !has('gui_running')
+	augroup seiya
+		autocmd!
+		autocmd VimEnter,ColorScheme * highlight Normal ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight LineNr ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight SignColumn ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight VertSplit ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight NonText ctermbg=none
+	augroup END
+endif
+hi MatchParen ctermbg=none ctermfg=Red
