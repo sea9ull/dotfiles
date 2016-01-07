@@ -1,12 +1,25 @@
 # CASE_SENSITIVE="true"
-export GOPATH=$HOME/dev/go
-export PATH=$PATH:/usr/local/bin:$HOME/dev:$GOPATH/bin
+export GOPATH=$HOME/dev/go/bin:$HOME/dev/go/src/cli-kintone
+export SWIFTPATH=$HOME/dev/swift/usr/bin
+export RUBYPATH=$HOME/dev/ruby/.rbenv/bin:$HOME/dev/ruby/.rbenv/plugins/ruby-build/bin
+export LD_LIBRARY_PATH=$HOME/dev/oracle/instantclient_12_1
+export PATH=$PATH:$GOPATH:$SWIFTPATH:$RUBYPATH:$LD_LIBRARY_PATH
+
+#Character code for Oracle instant client
+export NLS_LANG=JAPANESE_JAPAN.AL32UTF8
+
+eval "$(rbenv init -)"
 # ssh
 # export SSH_KEY_PATH="~/.ssh/dsa_id"
 
 #=============================
 # Alias
 #=============================
+#
+if [ $SHLVL = 2 ]; then
+  alias tmux="tmux attach || tmux new-session \; source-file ~/.tmux/new-session"
+fi
+alias oracle='sqlplus kintone/k@192.168.5.5:1521/GANSEN.DOMAIN'
 alias killconky='killall conky'
 alias vi='vim -u ~/.virc'
 alias rouge='cocot -t UTF-8 -p EUC-JP -- jnethack'
@@ -14,6 +27,7 @@ alias irc='cocot -t UTF-8 -p ISO-2022-JP -- irssi'
 alias chatwork='chatwork-irc -addr="127.0.0.1:6667"&'
 alias mutt='mutt -n'
 alias tmux='tmux -2'
+#alias ruby='ruby2.0'
 alias ls='ls -F --color=auto'
 alias la='ls -a'
 alias ll='ls -l'
