@@ -19,6 +19,7 @@ eval "$(rbenv init -)"
 if [ $SHLVL = 2 ]; then
   alias tmux="tmux attach || tmux new-session \; source-file ~/.tmux/new-session"
 fi
+alias pdf2htmlEX="docker run -ti --rm -v ~/pdf:/pdf bwits/pdf2htmlex pdf2htmlEX"
 alias oracle='sqlplus kintone/k@192.168.5.5:1521/GANSEN.DOMAIN'
 alias killconky='killall conky'
 alias vi='vim -u ~/.virc'

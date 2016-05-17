@@ -55,7 +55,7 @@ set timeout timeoutlen=3000 ttimeoutlen=100
 " 編集結果非保存のバッファから、新しいバッファを開くときに警告を出さない
 set hidden
 " history line capacity
-set history=1000
+set history=3000
 " in join, non <Space> between japanese characters
 set formatoptions+=mM
 " Visual blockモードでフリーカーソルを有効にする
@@ -148,6 +148,9 @@ set nowrap
 set list
 "set listchars=tab:▸\ ,trail:_,eol:⇃
 set listchars=tab:▸\ ,trail:▹
+set tabstop=2
+set autoindent
+set expandtab
 
 "----------------------------------------
 " Keybind
@@ -223,22 +226,22 @@ call neobundle#begin(expand($RUNTIME.'/neobundle'))
 "set showtabline=2
 "set guioptions-=e
 "wombat,  solarized
-NeoBundle 'ryanoasis/vim-devicons'
+"NeoBundle 'ryanoasis/vim-devicons'
 
-let g:webdevicons_enable = 1
-let g:webdevicons_enable_airline_statusline = 0
-let g:webdevicons_enable_airline_statusline_fileformat_symbols = 0
-let g:webdevicons_enable_airline_tabline = 0
-let g:webdevicons_enable_ctrlp = 0
-let g:webdevicons_enable_flagship_statusline = 0
-let g:webdevicons_enable_flagship_statusline_fileformat_symbols = 0
-let g:webdevicons_enable_nerdtree = 0
-let g:webdevicons_enable_unite = 1
-let g:webdevicons_enable_vimfiler = 1
+"let g:webdevicons_enable = 1
+"let g:webdevicons_enable_airline_statusline = 0
+"let g:webdevicons_enable_airline_statusline_fileformat_symbols = 0
+"let g:webdevicons_enable_airline_tabline = 0
+"let g:webdevicons_enable_ctrlp = 0
+"let g:webdevicons_enable_flagship_statusline = 0
+"let g:webdevicons_enable_flagship_statusline_fileformat_symbols = 0
+"let g:webdevicons_enable_nerdtree = 0
+"let g:webdevicons_enable_unite = 1
+"let g:webdevicons_enable_vimfiler = 1
 
 "let g:WebDevIconsUnicodeDecorateFileNodesExtensionSymbols = {}
 "let g:WebDevIconsUnicodeDecorateFileNodesExtensionSymbols['vim'] = "\ue7c5"
-let g:WebDevIconsUnicodeDecorateFileNodesDefaultSymbol = "\ue7c5"
+"let g:WebDevIconsUnicodeDecorateFileNodesDefaultSymbol = "\ue7c5"
 
 NeoBundle 'itchyny/lightline.vim'
 "let g:lightline = {
@@ -289,11 +292,13 @@ function! MyFilename()
 endfunction
 
 function! Myencoding()
-  return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc.WebDevIconsGetFileFormatSymbol() : &enc.WebDevIconsGetFileFormatSymbol()) : ''
+  "return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc.WebDevIconsGetFileFormatSymbol() : &enc.WebDevIconsGetFileFormatSymbol()) : ''
+  return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc: &enc) : ''
 endfunction
 
 function! MyFiletype()
-  return winwidth(0) > 70 ? (strlen(&filetype) ? WebDevIconsGetFileTypeSymbol(). &filetype  : '') : ''
+  "return winwidth(0) > 70 ? (strlen(&filetype) ? WebDevIconsGetFileTypeSymbol(). &filetype  : '') : ''
+  return winwidth(0) > 70 ? (strlen(&filetype) ? &filetype  : '') : ''
 endfunction
 
 function! MyMode()
@@ -447,11 +452,11 @@ function! s:hooks.on_source(bundle)
     \ ]}
 endfunction
 
-NeoBundle 'altercation/vim-colors-solarized'
-NeoBundle 'vim-scripts/matrix.vim--Yang'
+"NeoBundle 'altercation/vim-colors-solarized'
+"NeoBundle 'vim-scripts/matrix.vim--Yang'
 "NeoBundle 'croaker/mustang-vim'
 "NeoBundle 'jeffreyiacono/vim-colors-wombat'
-NeoBundle 'nanotech/jellybeans.vim'
+"NeoBundle 'nanotech/jellybeans.vim'
 "NeoBundle 'vim-scripts/Lucius'
 "NeoBundle 'vim-scripts/Zenburn'
 "NeoBundle 'mrkn/mrkn256.vim'
@@ -471,9 +476,9 @@ syntax on
 "
 "colorscheme jellybeans
 "colorscheme hybrid
-colorscheme molokai
-"colorscheme mustang
 "colorscheme molokai
+"colorscheme mustang
+colorscheme molokai
 "let solarized_italic =0
 "colorscheme solarized
 "set background=light
