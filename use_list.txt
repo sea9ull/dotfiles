@@ -1,0 +1,10 @@
+zsh
+nvim
+kitty
+hypr
+environment
+waybar
+ranger
+fcitx5
+mpv
+mpd

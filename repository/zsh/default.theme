@@ -1,0 +1,1 @@
+BIND_CONFIG="config:$XDG_CONFIG_HOME/zsh"

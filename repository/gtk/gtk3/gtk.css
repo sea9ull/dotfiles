@@ -1,0 +1,12 @@
+VteTerminal,
+TerminalScreen,
+vte-terminal {
+    padding: 25px 25px 25px 25px;
+    -VteTerminal-inner-border: 25px 25px 25px 25px;
+}
+.window-frame, .window-frame:backdrop {
+    box-shadow: 0 0 0 black;
+    border-style: none;
+    margin: 5px;
+    border-radius: 5px;
+}

@@ -1,0 +1,368 @@
+#=============================
+#System
+#=============================
+#autocomplete
+autoload -U compinit; compinit
+autoload -U promptinit; promptinit
+#先方予測 suggestionの邪魔なので切る
+#autoload predict-on
+#predict-on
+
+#editor
+#autoload zed
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey '^e' edit-command-line
+zstyle ':completion:*default' menu select=1
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+ttyctl -f
+
+#=============================
+# History
+#=============================
+
+autoload history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+#Ctrl+P, Ctrl+N compatible cmd list prev next
+bindkey "^N" history-beginning-search-forward-end
+bindkey "^P" history-beginning-search-backward-end
+
+HISTFILE=$HOME/env/private/.zsh_history
+HISTSIZE=60000
+SAVEHIST=60000
+HIST_STAMPS="yyyy/mm/dd"
+setopt EXTENDED_HISTORY
+setopt APPEND_HISTORY
+#not add same history
+setopt HIST_IGNORE_ALL_DUPS
+# ignore duplication command history list
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS
+setopt SHARE_HISTORY
+#when select cmd in histry, stop edit cmd
+#setopt hist_verify
+#no save same command
+setopt HIST_SAVE_NO_DUPS
+#history command do not regist
+setopt HIST_NO_STORE
+setopt LIST_PACKED
+
+#=============================
+# Option
+#=============================
+#show japanese filename
+setopt PRINT_EIGHT_BIT
+setopt NO_BEEP
+setopt NOLISTBEEP
+setopt NO_FLOW_CONTROL
+#not exit zsh then Ctrl+D
+setopt IGNORE_EOF
+setopt AUTO_CD
+setopt MAGIC_EQUAL_SUBST
+setopt CORRECT
+setopt PROMPT_SUBST
+#use extended wildcard
+setopt EXTENDED_GLOB
+
+#=============================
+# Alias
+#=============================
+
+#unix utills
+alias ls='ls -F --color=auto'
+alias ll='ls -lh --time-style=+\[%Y/%m/%d\ %H:%M\]'
+alias la='ls -alh --time-style=+\[%Y/%m/%d\ %H:%M\]'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias grep='grep --color'
+alias rm='rm -I'
+alias cp='cp -i'
+alias mv='mv -i'
+alias df='df -h'
+alias du='du -c -h'
+alias ping='ping -c 5'
+alias mkdir='mkdir -p -v'
+alias sudo='sudo '
+alias diff="colordiff"
+alias hist='history'
+
+#global alias
+alias -g L='| less'
+alias -g G='| grep'
+alias -g P='| peco'
+
+if (( UID != 0 )); then
+  alias svim='sudoedit'
+  alias shutdown='sudo systemctl poweroff'
+fi
+alias vi='vim'
+alias vim="nvim"
+alias lstheme='ls -1 /usr/share/themes/'
+
+# for arch linux
+#alias pipin='PIP_CONFIG_FILE=/dev/null pip install --isolated --root="$pkgdir" --ignore-installed --no-deps --no-warn-script-location '
+alias pipin='pipman -S'
+alias pacin='sudo pacman -S'
+#alias paclist='pacman -Sl'
+alias paclist='pacman -Qeq'
+alias pacin_file='sudo pacman -U'
+#alias pacrm='sudo pacman -R'
+alias pacrm='sudo pacman -Rns'
+alias pacrm_safe='pacman -Rdd ffmpeg'
+alias pacupd='sudo pacman -Syu'
+alias pacalone='pacman -Qdt'
+alias pacsearch='pacman -Qs'
+alias pacclean='paccache -r; paccache -ruk0'
+alias aurin='yay -S --noconfirm'
+alias aurin_m='yay -S'
+alias aurin_file='yay -U'
+#alias aurlist='aurman -Sl'
+alias aurclean='yay -Sc'
+alias aurupd='yay -Syu --noconfirm'
+alias aurrm='yay -Rns'
+alias auralone='yay -Yc'
+alias aursearch='yay -Qs'
+#alias yin='yaourt -S'
+#alias yin_file='yaourt -U'
+##alias yrm='yaourt -R'
+#alias yrm='yaourt -Rns'
+#alias yupd='yaourt -Syua'
+
+#nix
+alias su_nix='. /home/sica/.nix-profile/etc/profile.d/nix.sh'
+
+#config
+alias updxmonad="xmonad --recompile && xmonad --restart"
+alias updzsh="source ~/.config/zsh/.zshrc"
+alias updfont="fc-cache -fv"
+alias fontsearch="fc-list | grep "
+
+#git alias
+alias g='git'
+alias gcommit='git commit -a -m'
+alias glog='git log -p'
+alias gstatistic='git log --stat'
+#alias gtree='git log --pretty=format:"%h <%an>(%ar) %s" --graph'
+alias gtree='git log --pretty=format:"%h  %s" --graph'
+
+#docker alial
+alias docker_rm_all='docker rm -v $(docker ps -aq -f status=exited)'
+
+#=============================
+# Vim Mode
+#=============================
+#enable vim mode
+bindkey -v
+
+#=============================
+# Function
+#=============================
+
+function man() {
+  env \
+  LESS_TERMCAP_mb=$'\e[01;31m' \
+  LESS_TERMCAP_md=$'\e[01;31m' \
+  LESS_TERMCAP_me=$'\e[0m' \
+  LESS_TERMCAP_se=$'\e[0m' \
+  LESS_TERMCAP_so=$'\e[01;44;33m' \
+  LESS_TERMCAP_ue=$'\e[0m' \
+  LESS_TERMCAP_us=$'\e[01;32m' \
+  man $@
+}
+
+function history-all() {
+  history -E 1
+}
+
+#=============================
+# Application settings
+#=============================
+# #TMUX
+# if [[ ! -n $TMUX && ! -z $PS1 ]]; then
+#   #get the IDs
+#   ID="`tmux list-sessions | grep -v 'attached'`"
+#   if [[ -z "$ID" ]]; then
+#     tmux new-session
+#   fi
+#   create_new_session="Create New Session"
+#   ID="$ID\n${create_new_session}:"
+#   #ID="`echo $ID | peco | cut -d: -f1`"
+#   ID="`echo $ID | fzf --reverse | cut -d: -f1`"
+#   if [[ "$ID" = "${create_new_session}" ]]; then
+#     tmux new-session
+#   elif [[ -n "$ID" ]]; then
+#     tmux attach-session -t "$ID"
+#   else
+#     :  # Start terminal normally
+#   fi
+# fi
+
+#Peco & fzf
+function selector () {
+  local prompt=""
+  local query=""
+  local tac=""
+  for OPT in "$@"; do
+    case $OPT in
+      '-p'|'--prompt' )
+          if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+            echo "option requires an argument -- $OPT" 1>&2
+            exit 1
+          fi
+          prompt="$2"
+          shift 2
+          ;;
+      '-q'|'--query' )
+          if [[ "$2" =~ ^-+ ]]; then
+            echo "option requires an argument -- $OPT" 1>&2
+            exit 1
+          fi
+          query="$2"
+          shift 2
+          ;;
+      '-t'|'--tac' )
+          #Linux:tac, Unix/MacOSX:tail -r
+          if which tac &> /dev/null; then
+            tac="tac"
+          else
+            tac="tail -r"
+          fi
+          shift 1
+          ;;
+    esac
+  done
+
+  if which peco &> /dev/null; then
+    local cmd="peco"
+    if [ -n "$prompt" ]; then cmd="$cmd --prompt \"$prompt\"" fi
+    if [ -n "$query" ];  then cmd="$cmd --query \"$query\""   fi
+    if [ -n "$tac" ];    then cmd="$tac | $cmd"               fi
+    eval $cmd
+  elif which fzf &> /dev/null; then
+    local cmd="fzf"
+    if [ -n "$prompt" ]; then cmd="$cmd --prompt=\"$prompt\"" fi
+    if [ -n "$query" ];  then cmd="$cmd --query=\"$query\""   fi
+    if [ -n "$tac" ];    then cmd="$cmd --tac --reverse"      fi
+    eval $cmd
+  else
+    echo "selector not found"
+    exit 1
+  fi
+}
+
+function select_history() {
+    BUFFER=$(history -n 1 | selector --prompt "History>" --query "$LBUFFER" --tac)
+    CURSOR=$#BUFFER
+    zle -R -c
+}
+zle -N select_history
+# keybind Ctrl+R
+bindkey '^R' select_history
+
+
+# cdr
+if [[ -n $(echo ${^fpath}/chpwd_recent_dirs(N)) && -n $(echo ${^fpath}/cdr(N)) ]]; then
+    autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
+    add-zsh-hook chpwd chpwd_recent_dirs
+    zstyle ':completion:*' recent-dirs-insert both
+    zstyle ':chpwd:*' recent-dirs-default true
+    zstyle ':chpwd:*' recent-dirs-max 1000
+    zstyle ':chpwd:*' recent-dirs-file "$HOME/.cache/chpwd-recent-dirs"
+fi
+function select_cdr () {
+    local selected_dir=$(cdr -l | sed 's/^[0-9]\+ \+//' | selector --prompt "CDR>" --query "$LBUFFER")
+    if [ -n "$selected_dir" ]; then
+        BUFFER="cd ${selected_dir}"
+        zle accept-line
+    fi
+}
+zle -N select_cdr
+bindkey '^Y' select_cdr
+
+function ghq_list () {
+    local selected=$(ghq list -p | selector --prompt "GHQ>" --query "$LBUFFER")
+    if [ -n "$selected" ]; then
+        BUFFER="cd ${selected}"
+        zle accept-line
+    fi
+    zle clear-screen
+}
+zle -N ghq_list
+bindkey '^O' ghq_list
+
+function git_branch_list () {
+    local selected=$(git branch -a | grep -v "^*" | selector --prompt "GitBranch>" --query "$LBUFFER")
+    if [ -n "$selected" ]; then
+        BUFFER="git checkout ${selected}"
+        zle accept-line
+    fi
+    zle clear-screen
+}
+zle -N git_branch_list
+bindkey '^G^B' git_branch_list
+
+function git_commit_list () {
+    local selected=$(git log --pretty=format:"%h <%an>(%ar)  %s" | selector --prompt "GitLog")
+    local commit=`echo \"${selected}\" | cut -d' ' -f1`
+    BUFFER="$LBUFFER $commit"
+    CURSOR=$#BUFFER
+    zle -R -c
+}
+zle -N git_commit_list
+bindkey '^G^L' git_commit_list
+
+
+#=============================
+# Prompt
+#=============================
+# include color
+autoload -Uz colors; colors
+
+#Colors
+#Normal color
+#0 black   1 red     2 green   3 yellow 4 blue    5 magenta 6 cyan    7 white
+#Bright color
+#8 black   9 red     10 green 11 yellow 12 blue  13 magenta 14 cyan  15 white
+
+#Charactors
+#●◉❖ ❯⚫ ⬟ ⬠ ⬡ ⬢ ⬣ ⬝ 
+
+#load version control system info
+autoload -Uz vcs_info
+#PROMPT='%B%F{4}❯%F{1}❯%F{2}❯%f %b'
+#PROMPT='%B%F{4}\%F{1}\%F{2}\ %f%b'
+PROMPT='%B%F{10}❯ %f%b'
+
+#  %s :   バージョン管理システム名 (git, svn, ...)
+#  %b :   ブランチ名
+#  %a :   アクション(merge, rebase, ...)
+zstyle ':vcs_info:*' formats '%F{6}%b%f'
+zstyle ':vcs_info:*' actionformats '%F{6}%b:%a%f'
+
+#  precmd:          プロンプト表示毎に実行される関数
+#  vcs_info:        バージョン管理システムから情報を取得
+#  prompt_subst:    プロンプト表示時に変数を展開するオプション
+#  vcs_info_msg_0_: バージョン管理システムの情報
+precmd () { vcs_info }
+setopt prompt_subst
+RPROMPT='%B%F{0}%~ ${vcs_info_msg_0_}'
+
+
+#=============================
+# Plugin
+#=============================
+# fish like syntax highlighting
+# install :: pacman -S zsh-syntax-highlighting
+
+if [[ -e /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh;
+fi
+
+# fish like suggestion
+# install :: pacman -S zsh-autosuggestions
+if [[ -e /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh;
+fi

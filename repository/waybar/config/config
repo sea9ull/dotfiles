@@ -1,0 +1,154 @@
+// vim:syntax=jsonc
+{
+    "layer": "top",
+    "modules-left": ["custom/browser", "custom/filer", "custom/terminal", "custom/editor", "custom/godot" ,"custom/blender", "custom/steam", "custom/launcher"],
+    "modules-center": ["hyprland/workspaces"],
+    "modules-right": ["network", "bluetooth", "pulseaudio", "tray","custom/power", "clock"],
+    "custom/browser": {
+        "format": " ",
+        "on-click": "vivaldi-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime",
+        "tooltip": false
+    },
+    "custom/filer": {
+        "format": "󰉋 ",
+        "on-click": "kitty ranger",
+        "tooltip": false
+    },
+    "custom/editor": {
+        "format": " ",
+        "on-click": "kitty nvim",
+        "tooltip": false
+    },
+    "custom/terminal": {
+        "format": " ",
+        "on-click": "kitty",
+        "tooltip": false
+    },
+    "custom/godot": {
+        "format": " ",
+        "on-click": "godot",
+        "tooltip": false
+    },
+    "custom/blender": {
+        "format": "󰂫 ",
+        "on-click": "blender",
+        "tooltip": false
+    },
+    "custom/steam": {
+        "format": " ",
+        "on-click": "steam",
+        "tooltip": false
+    },
+    "custom/launcher": {
+        "format": "󱐋 ",
+        "on-click": "launcher",
+        "tooltip": false
+    },
+    "hyprland/workspaces": {
+      "format": "{icon}",
+      "disable-scroll": true,
+      "format-icons": {
+        "1": "",
+        "2": "",
+        "3": "",
+        "4": "",
+        "default": "",
+        "active": "",
+        "empty": "",
+        "visible": "",
+        "special": " ",
+        "persistent": ""
+      },
+      "on-click": "activate"
+    },
+    "hyprland/window": { "format": "👉 {}", "separate-outputs": false },
+    "temperature": {
+        "thermal-zone": 2,
+        "hwmon-path": "/sys/class/hwmon/hwmon0/temp1_input",
+        "critical-threshold": 70,
+        "format-critical": "{icon}{temperatureC}°C",
+        "format": "{icon}{temperatureC}°C",
+        "interval": 60,
+        "format-icons": [" ", " ", " "]
+    },
+    // "backlight": {
+    //     "interval": 5,
+    //     "device": "intel_backlight",
+    //     "format-alt": "{icon}",
+    //     "format": "{percent}% {icon}",
+    //     "format-alt-click": "click-right",
+    //     "format-icons": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    //     "on-scroll-down": "light -A 2",
+    //     "on-scroll-up": "light -U 2"
+    // },
+    "mpd": {
+        "format": "{stateIcon} {title} - {elapsedTime:%M:%S}/{totalTime:%M:%S}",
+        "format-paused": "懶 {title}",
+        "interval": 1,
+        "state-icons": {
+            "paused": "",
+            "playing": ""
+        },
+        "on-click": "mpc toggle",
+        "on-click-right": "~/.config/waybar/scripts/mp_toggle.sh",
+    },
+    "pulseaudio": {
+        "scroll-step": 1, // %, can be a float
+        "format": "{icon}",
+        // "format": "{icon}{volume}%{format_source}",
+        // "format-bluetooth": "{icon}{volume}%  {format_source}",
+        // "format-bluetooth-muted": " {icon} {format_source}",
+        // "format-muted": " {format_source}",
+        // "format-source": " ",
+        // "format-alt-source": " {volume}%",
+        // "format-alt-click": "click-right",
+        // "format-source-muted": " ",
+        "format-icons": {
+            "headphone": " ",
+            "hands-free": " ",
+            "headset": " ",
+            "phone": " ",
+            "portable": " ",
+            "car": " ",
+            "default": [" ", " ", " "]
+        },
+        "on-click": "pavucontrol",
+        "on-scroll-up": "pamixer -ud 2 && pamixer --get-volume > $SWAYSOCK.wob",
+        "on-scroll-down": "pamixer -ui 2 && pamixer --get-volume > $SWAYSOCK.wob",
+    },
+    "network": {
+        "format": "{ifname}",
+        "format-wifi": " ",
+        "format-ethernet": "󰛳 ",
+        "format-disconnected": "󰲛 ",
+        "tooltip-format": "{ifname}",
+        "tooltip-format-wifi": " {essid} ({signalStrength}%)",
+        "tooltip-format-ethernet": " {ifname}",
+        "tooltip-format-disconnected": "Disconnected",
+        "max-length": 20
+    },
+    "bluetooth": {
+        "format-disabled": "",
+        "format-on": "󰂯 ",
+        "format-off": "󰂲 ",
+        "format-connected": "󰂱 ",
+        "tooltip-format" : "{status}{device_alias}",
+        "on-click" : "~/.config/waybar/scripts/bluetooth.sh -t",
+        "on-click-right" : "~/.config/waybar/scripts/bluetooth.sh -c"
+    },
+    "tray": {
+    },
+    "custom/power": {
+        "format": " ",
+        "on-click": "nwgbar -o 0.4",
+        "tooltip": false
+    },
+    "clock": {
+        "format": "{:%H:%M}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3
+        }
+    }
+}

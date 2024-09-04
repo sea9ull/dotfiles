@@ -1,0 +1,138 @@
+@define-color bg1   #282828;
+@define-color ws_foc #e5e9f0;
+@define-color ws-clr #2e3440;
+@define-color font #ffc94a;
+@define-color icon #c94aff;
+@define-color mpd #fbf1c7;
+@define-color pipe #7d818a;
+
+* {
+  font-size: 16px;
+  font-family: UDEV Gothic NFLG;
+  font-weight: bold;
+  min-height: 0px;
+}
+window#waybar {
+  /* background-color: rgba(0x11,0x11, 0x12, 0.6); */
+  /* background-color: #4c566a; */
+  /* background-color: transparent; */
+  background: rgba(0, 0, 0, 0);
+}
+#window {
+    border-radius: 20px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgba(0, 0, 0, 0);
+}
+/* center module */
+#workspaces {
+  margin: 3px 0px 0px 0px;
+  padding: 0px 8px 0px 4px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0);
+}
+
+#workspaces button {
+  /* color: @ws-clr; */
+  /* background: @ws_foc; */
+  background: rgba(0, 0, 0, 0);
+  color: #ccc;
+  margin: 1px 3px 1px 3px;
+  padding: 0px;
+  border: none;
+}
+
+#workspaces button.default {
+  color: #ffd77a;
+}
+#workspaces button.empty {
+  color: #272822;
+}
+#workspaces button.visible {
+  color: #A1EFE4;
+}
+#workspaces button.active {
+  color: #a6e22e;
+}
+
+/* left module */
+#custom-browser,
+#custom-filer,
+#custom-editor,
+#custom-terminal,
+#custom-godot,
+#custom-blender,
+#custom-steam,
+#custom-launcher {
+  color: @icon;
+  margin: 3px 0px 0px 0px;
+  padding: 1px 6px 1px 6px;
+  background-color: @bg1;
+}
+#custom-browser {
+    margin-left: 12px;
+    padding-left: 12px;
+    border-radius: 12px 0px 0px 12px;
+}
+#custom-launcher {
+    padding-right: 10px;
+    border-radius: 0px 12px 12px 0px;
+}
+
+/* right module */
+#network,
+#pulseaudio,
+#bluetooth,
+#backlight,
+#tray,
+#custom-power{
+  color: @font;
+  margin: 3px 0px 0px 0px;
+  padding: 1px 6px 1px 6px;
+  background-color: @bg1;
+}
+#network {
+    padding-left: 12px;
+    border-radius: 12px 0px 0px 12px;
+}
+#custom-power {
+    padding-right: 10px;
+    border-radius: 0px 12px 12px 0px;
+}
+#clock {
+  color: #a2bab1;
+  margin: 3px 10px 0px 12px;
+  padding: 0px 12px 0px 12px;
+  background-color: @bg1;
+  border-radius: 12px;
+}
+
+#custom-left_pad {
+  border-radius: 8px 0px 0px 8px;
+  padding: 0px 2px 0px 2px;
+  margin: 0px;
+}
+
+#custom-right_pad {
+  border-radius: 0px 8px 8px 0px;
+  padding: 0px 2px 0px 2px;
+  margin: 0px;
+}
+#custom-pipe {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  font-size: 16px;
+  background-color: rgba(0,0,0,0);
+  color: rgba(0,0,0,0);
+}
+
+#mpd { color: @mpd; }
+#pulseaudio { color: #fb4934; }
+#bluetooth { color: #fe8019; }
+#network { color: #fabd2f; }
+#disk { color: #ebdbb2; }
+#memory { color: #b8bb26; }
+#cpu { color: #8ec07c; }
+#backlight { color: #83a598; }
+#battery { color: #d3869b; }
+#custom-power { color: #fb4934; }

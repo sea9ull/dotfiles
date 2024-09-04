@@ -1,0 +1,233 @@
+"=========================================
+"    Description: .virc
+"  Last Modified: 2016-06-20 10:03
+"        Version: 3.00
+"=========================================
+set nocompatible
+let $RUNTIME = $HOME.'/.vim'
+"English message
+language C
+
+"----------------------------------------
+" 日本語入力対応
+"----------------------------------------
+" 挿入モード切替時、前回のIMEを復元
+"set t_SI+=[<r
+" 挿入モード終了時、IMEを保存
+"set t_EI+=[<s[<0t
+"vim 終了時。IMEを無効にし、状態保存
+"set t_te+=[<0t[<s
+"set ttimeoutlen=100
+
+" ESC でIME をoff
+inoremap <ESC> <ESC>:set iminsert=0<CR>
+
+"----------------------------------------
+" File Encoding
+"----------------------------------------
+set encoding=utf-8
+set fileencodings=utf-8,iso-2022-jp,cp932,sjis,euc-jp
+set fileformats=unix,dos,mac
+"----------------------------------------
+" System Settings
+"----------------------------------------
+" not make  backupfile, swapfile, viminfo
+set ttyfast
+set nowritebackup
+set nobackup
+set noswapfile
+set viminfo=
+"mouse mode a:all, v:visual
+"if has('mouse')
+"  "set mouse=a
+"  set mouse=v
+"endif
+
+" sharing clipboard
+" #on ubuntu
+set clipboard=unnamedplus
+" #on otherUnix/Linux
+"set clipboard+=unnamed,autoselect
+
+set nrformats-=octal " 8進数を無効にする。<C-a>,<C-x>に影響する
+set timeout timeoutlen=3000 ttimeoutlen=100 " キーコードやマッピングされたキー列が完了するのを待つ時間(ミリ秒)
+set hidden                     " 編集結果非保存のバッファから、新しいバッファを開くときに警告を出さない
+set history=3000               " history line capacity
+set formatoptions+=mM          " in join, non <Space> between japanese characters
+set virtualedit=block          " Visual blockモードでフリーカーソルを有効にする
+set whichwrap=b,s,[,],<,>      " カーソルキーで行末／行頭の移動可能に設定
+set backspace=indent,eol,start " バックスペースでインデントや改行を削除できるようにする
+
+set undodir=$RUNTIME.'\undo'
+set ambiwidth=double   "ambichar size
+set wildmenu           " コマンドライン補完するときに強化されたものを使う
+
+"----------------------------------------
+" Print Settings
+"----------------------------------------
+"
+set printheader=%<%f%h%=\ %N
+"set printheader=%t                                       " ファイル名
+"set printheader=%F                                       " ファイル名（パス含む）
+"set printheader=%t\ -%N-                                  " ファイル名 -ページ-
+"set printheader=%{strftime('%Y/%m/%d\ %H:%M')}           " 最終印刷日時
+"set printheader=山田\ 太郎                               " 最終保存者、作成者
+"set printheader=山田\ 太郎\ %N\ %{strftime('%Y/%m/%d')}  " 作成者 ページ 日付
+
+"set printoptions+=header:1  " ヘッダー、本文間にスペースを空けない
+"set printoptions+=header:2   " ヘッダー、本文間に1行入れる
+"
+"
+"----------------------------------------
+" Search
+"----------------------------------------
+" 検索の時に大文字小文字を区別しない
+" ただし大文字小文字の両方が含まれている場合は大文字小文字を区別する
+set ignorecase
+set smartcase
+" 検索時にファイルの最後まで行ったら最初に戻る
+set wrapscan
+" incremental search
+set incsearch
+" highlight search
+set hlsearch
+" w,bの移動で認識する文字
+set iskeyword=a-z,A-Z,48-57,_,.,-,>
+" vimgrep をデフォルトのgrepとする場合internal
+set grepprg=internal
+
+"----------------------------------------
+" View Settings
+"----------------------------------------
+" not show splash message
+set shortmess+=I
+
+" non beep
+set noerrorbells
+set novisualbell
+set visualbell t_vb=
+
+" show column number
+set number
+
+set ruler
+set cursorline
+
+" 括弧の対応表示時間
+set showmatch matchtime=1
+" tab size
+set ts=2 sw=2 sts=2
+
+set autoindent
+" C indent settings
+set cinoptions+=:0
+
+set title
+" show command in status
+set showcmd
+" command line height
+set cmdheight=1
+
+" 画面最後の行をできる限り表示する
+set display=lastline
+" not return text at line length
+set nowrap
+
+" show tab, trail, eol
+set list
+"set listchars=tab:▸\ ,trail:_,eol:⇃
+set listchars=tab:▸\ ,trail:▹
+set tabstop=2
+set expandtab
+
+" status line height
+set laststatus=2
+set statusline=%f%m%r%h%w\ %{&filetype}
+set statusline+=%=%l:%c\ \ \ U+%04.4B\ %{&ff}\.%{(&fenc!=''?&fenc:&enc)}
+
+"----------------------------------------
+" Keybind
+"----------------------------------------
+"括弧の補完
+"
+inoremap { {}<LEFT>
+inoremap [ []<LEFT>
+inoremap ( ()<LEFT>
+inoremap " ""<LEFT>
+inoremap ' ''<LEFT>
+vnoremap { "zdi{<C-R>z}<ESC>
+vnoremap [ "zdi[<C-R>z]<ESC>
+vnoremap ( "zdi(<C-R>z)<ESC>
+vnoremap " "zdi"<C-R>z"<ESC>
+vnoremap ' "zdi'<C-R>z'<ESC>
+nnoremap ; :
+nnoremap : ;
+nnoremap <silent> <C-W>\ :vs<CR>
+nnoremap <silent> <C-W>- :split<CR>
+
+" ヘルプ検索
+" 'nnoremap <F1> K
+" 現在開いているvimスクリプトファイルを実行
+nnoremap <F8> :source %<CR>
+" 強制全保存終了を無効化
+nnoremap ZZ <Nop>
+" カーソルをj k では表示行で移動する。物理行移動は<C-n>,<C-p>
+" キーボードマクロには物理行移動を推奨
+" h l は行末、行頭を超えることが可能に設定(whichwrap)
+nnoremap <Down> gj
+nnoremap <Up>   gk
+nnoremap j gj
+nnoremap k gk
+nnoremap h <Left>zv
+nnoremap l <Right>zv
+nnoremap <C-@> <ESC>
+nnoremap ,tg :!ctags -R<CR>
+nnoremap <Leader>tt :TagbarToggle<Enter>
+
+nnoremap <silent> <S-Left>  :5wincmd <<CR>
+nnoremap <silent> <S-Right> :5wincmd ><CR>
+nnoremap <silent> <S-Up>    :5wincmd -<CR>
+nnoremap <silent> <S-Down>  :5wincmd +<CR>
+
+"----------------------------------------
+" Binary Mode
+"----------------------------------------
+" binary-modeの設定
+augroup BinaryXXD
+  autocmd!
+  autocmd BufReadPre  *.bin let &binary =1
+  autocmd BufReadPost * if &binary | silent %!xxd -g 1
+  autocmd BufReadPost * set ft=xxd | endif
+  autocmd BufWritePre * if &binary | %!xxd -r | endif
+  autocmd BufWritePost * if &binary | silent %!xxd -g 1
+  autocmd BufWritePost * set nomod | endif
+augroup END
+
+"----------------------------------------
+" File Type
+"----------------------------------------
+autocmd BufRead,BufNewFile *.{md,mdwn,mkd,mkdn,mark*} set filetype=markdown
+
+"===========================
+" ColorScheme Settings
+"===========================
+
+set t_Co=256
+" ハイライトを有効にする
+if &t_Co > 2 || has('gui_running')
+  syntax on
+endif
+
+if !has('gui_running')
+	augroup seiya
+		autocmd!
+		autocmd VimEnter,ColorScheme * highlight Normal ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight LineNr ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight SignColumn ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight VertSplit ctermbg=none
+		autocmd VimEnter,ColorScheme * highlight NonText ctermbg=none
+	augroup END
+endif
+
+hi MatchParen ctermbg=none ctermfg=Red
+hi StatusLine ctermfg=green ctermbg=none cterm=none

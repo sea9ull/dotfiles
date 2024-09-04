@@ -1,0 +1,43 @@
+#=============================
+# env_var
+#=============================
+#zsh設定Directory
+export ZDOTDIR=$HOME/.config/zsh
+# SSHで接続した先で日本語が使えるようにする
+#export LC_ALL=en_US.UTF-8
+#export LC_ALL=
+export LC_CTYPE=en_US.UTF-8
+#export LC_CTYPE=ja_JP.UTF-8
+export LANG=ja_JP.UTF-8
+
+#terminal settings
+#export TERM=vt100
+#export TERM=xterm-256color
+export TERM=xterm-kitty
+export OUTPUT_CHARSET=utf-8
+export LV="-0u8"
+
+
+# editor & pager
+export EDITOR=/usr/bin/nvim
+export VISUAL=/usr/bin/nvim
+export GIT_EDITOR=/usr/bin/nvim
+#export PAGER=/usr/local/bin/vimpager
+#export MANPAGER=/usr/local/bin/vimpager CASE_SENSITIVE="true"
+
+#export npm_config_prefix=$HOME/.node_modules
+# # export ANDROID_HOME=$HOME/.config/android-sdk
+#export RUSTPATH=$HOME/.cargo/bin
+#export JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+#export GOPATH=$HOME/dev/go
+#export RUBYPATH=$HOME/dev/ruby/.rbenv/bin:$HOME/dev/ruby/.rbenv/plugins/ruby-build/bin
+#local NODEJS=$HOME/.node_modules/bin
+#local CAVAL=$HOME/.cabal/bin
+#local ROSWELL=$HOME/.roswell/bin
+#local JAVA=/usr/share/java/
+#local SPTK_PATH=/opt/sptk/bin
+#local DEVELOPMENT_PATH=$GOPATH/bin:$RUBYPATH:$NODEJS:$CAVAL:$ROSWELL:$JAVA:$SPTK_PATH:$RUSTPATH
+#export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/include/python3.8/
+export PATH=$PATH:$HOME/bin:$HOME/.local/bin:$DEVELOPMENT_PATH
+
+# eval "$(rbenv init -)"

@@ -1,0 +1,7 @@
+require("base")
+require("autocmds")
+require("options")
+require("keymaps")
+require("appearance")
+-- require("plugins")
+-- vim.api.nvim_create_autocmd("BufWritePost", { pattern = { "plugins.lua" }, command = "PackerCompile", })
