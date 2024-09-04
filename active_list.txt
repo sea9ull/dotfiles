@@ -1,9 +1,10 @@
 zsh
 nvim
 kitty
-hypr
 environment
+hypr
 waybar
+wofi
 ranger
 fcitx5
 mpv

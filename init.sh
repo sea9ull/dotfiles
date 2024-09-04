@@ -4,7 +4,7 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 DOTFILES_DIR=$SCRIPT_DIR
 # DOTFILES_DIR=$HOME/env/dotfiles
 REPOSITORY=$DOTFILES_DIR/repository
-APPS=$DOTFILES_DIR/use_list.txt
+APPS=$DOTFILES_DIR/active_list.txt
 XDG_CONFIG_HOME=$HOME/.config
 
 if [ ! -d $XDG_CONFIG_HOME ]; then
@@ -31,9 +31,9 @@ function bind_dir() {
         if [ ! -d "$dst_dir" ]; then
             mkdir -p $dst_dir
         fi
-    	if [ "${dst_file:0:1}" == "_" ]; then
-    	    dst_file=".${dst_file:1}"
-    	fi
+        if [ "${dst_file:0:1}" == "_" ]; then
+            dst_file=".${dst_file:1}"
+        fi
         bind_file "$config" "$dst_dir/$dst_file"
     done
 }
