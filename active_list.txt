@@ -3,9 +3,9 @@ nvim
 kitty
 environment
 hypr
-waybar
 wofi
 ranger
 fcitx5
 mpv
 mpd
+zathura

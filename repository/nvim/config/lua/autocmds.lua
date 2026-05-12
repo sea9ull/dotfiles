@@ -9,8 +9,7 @@ local autocmd = vim.api.nvim_create_autocmd -- Create autocommand
 -- (IMの設定でHenkanキーにIM無効を割り当てる, Ctrl+SpaceでIM有効)
 local clear_ime_cmd = 'xdotool key Henkan'
 augroup("VIM_IME", {clear = true})
-autocmd({ "InsertLeave", "CmdwinLeave"  }, {
-    pattern = { "*" },
+autocmd({ "InsertLeave", "CmdwinLeave"  }, { pattern = { "*" },
     group = "VIM_IME",
     callback = function()
         vim.fn.system(clear_ime_cmd)
@@ -41,11 +40,8 @@ autocmd("BufWritePost", { pattern = "*", group="BinaryXXD", command = "set nomod
 vim.opt.synmaxcol = 250
 autocmd("Syntax", { pattern = "*", command = "if col('$') > 1000 | syntax off | endif", })
 
--- -- Remove whitespace on save
--- autocmd("BufWritePre", {
---     pattern = "*",
---     command = ":%s/\\s\\+$//e",
--- })
+autocmd("TermOpen", { pattern = "*", command = "setlocal nonumber", })
+autocmd("BufEnter", { pattern = "*", command = "if &buftype == 'terminal' | :startinsert | endif", })
 
 -- -- Don't auto commenting new lines
 -- autocmd("BufEnter", {
@@ -60,3 +56,5 @@ autocmd("Syntax", { pattern = "*", command = "if col('$') > 1000 | syntax off | 
 --         vim.api.nvim_exec('silent! normal! g`"zv', false)
 --     end,
 -- })
+
+

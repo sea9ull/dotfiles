@@ -13,7 +13,8 @@ export LANG=ja_JP.UTF-8
 #terminal settings
 #export TERM=vt100
 #export TERM=xterm-256color
-export TERM=xterm-kitty
+#export TERM=xterm-kitty
+export TERM=kitty
 export OUTPUT_CHARSET=utf-8
 export LV="-0u8"
 
@@ -22,6 +23,8 @@ export LV="-0u8"
 export EDITOR=/usr/bin/nvim
 export VISUAL=/usr/bin/nvim
 export GIT_EDITOR=/usr/bin/nvim
+export GNUPGHOME=$HOME/env/private/gnupg
+export PASSWORD_STORE_DIR=$HOME/env/private/pass
 #export PAGER=/usr/local/bin/vimpager
 #export MANPAGER=/usr/local/bin/vimpager CASE_SENSITIVE="true"
 

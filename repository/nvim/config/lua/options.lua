@@ -26,8 +26,9 @@ vim.opt.undodir= RUNTIME .. '/undo'
 vim.opt.nrformats:remove('octal')
 -- キーコードやマッピングされたキー列が完了するのを待つ時間(ミリ秒)
 vim.opt.timeout = true
-vim.opt.timeoutlen=1000
-vim.opt.ttimeoutlen=100
+vim.opt.timeoutlen=500
+vim.opt.ttimeoutlen=300
+vim.opt.updatetime = 300
 -- 編集結果非保存のバッファから、新しいバッファを開くときに警告を出さない
 vim.opt.hidden = true
 -- history line capacity
@@ -60,10 +61,8 @@ vim.opt.completeopt = { "menuone", "noselect" }
 vim.opt.conceallevel = 0
 vim.opt.mouse = "a"
 vim.opt.pumheight = 10
-vim.opt.smartindent = true
-vim.opt.timeoutlen = 300
+vim.opt.showmode = false
 vim.opt.undofile = true
-vim.opt.updatetime = 300
 vim.opt.shell = "zsh"
 vim.opt.signcolumn = "yes"
 -- コマンドライン補完するときに強化されたものを使う
@@ -75,6 +74,7 @@ vim.opt.termguicolors = false
 vim.opt.pumblend = 5
 vim.opt.scrolloff = 8
 vim.opt.sidescrolloff = 8
+vim.opt.laststatus = 2
 
 -- =========================
 -- Search
@@ -100,14 +100,69 @@ vim.opt.matchtime=1
 -- TAB
 -- =========================
 local tab_size = 4
-vim.opt.expandtab = true
 vim.opt.tabstop = tab_size
 vim.opt.softtabstop = tab_size
-vim.opt.shiftwidth = tab_size
-vim.opt.shiftround = true
-vim.opt.smarttab = true
-
+vim.opt.shiftwidth = 0
+vim.opt.shiftround = false
+vim.opt.expandtab = true
+vim.opt.smartindent = false
 vim.opt.autoindent = true
+vim.opt.smarttab = false
+
+
 -- set smartindent
 -- set nocindent
 -- status line height
+
+-- =============
+-- Appearance
+-- =============
+
+-- not show splash message
+vim.opt.shortmess:append("I")
+-- non beep
+vim.opt.errorbells = false
+vim.opt.visualbell = false
+
+-- show column number
+vim.opt.number = true
+vim.opt.relativenumber = false
+-- vim.opt.numberwidth = 4
+vim.opt.ruler = true
+vim.opt.cursorline = true
+-- hide tab bar
+vim.opt.showtabline = 0
+
+-- 括弧の対応表示時間
+-- C indent settings
+vim.opt.cinoptions:append(':0')
+vim.opt.title = true
+-- show command in status
+vim.opt.titlestring='%t'
+vim.opt.showcmd = true
+-- command line height
+vim.opt.cmdheight=1
+-- 画面最後の行をできる限り表示する
+vim.opt.display = 'lastline'
+-- not return text at line length
+vim.opt.wrap = false
+-- show tab, trail, eol
+vim.opt.list = true
+local tab_char = '▸ '
+local trail_char = '▹'
+vim.opt.listchars= {tab = tab_char, trail = trail_char}
+
+-- バッファ外の~を無効
+-- highlight link EndOfBuffer Ignore
+vim.opt.fillchars = {
+  vert = "▕", -- alternatives │
+  fold = " ",
+  eob = " ", -- suppress ~ at EndOfBuffer
+  diff = "╱", -- alternatives = ⣿ ░ ─
+  msgsep = "‾",
+  foldopen = "▾",
+  foldsep = "│",
+  foldclose = "▸",
+}
+
+-- vim.opt.backgroudnd = "dark"
