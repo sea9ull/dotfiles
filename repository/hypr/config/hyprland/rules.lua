@@ -1,4 +1,10 @@
--- ######## Window rules ########
+-- ### Workspace rules ###
+hl.workspace_rule({ workspace = "1", persistent = true, layout = "scrolling" })
+hl.workspace_rule({ workspace = "2", persistent = true })
+hl.workspace_rule({ workspace = "3", persistent = true })
+hl.workspace_rule({ workspace = "4", persistent = true })
+
+-- ### Window rules ###
 
 -- Disable blur for xwayland context menus
 hl.window_rule({match = {class = "^()$", title = "^()$" },                   no_blur = true })
@@ -6,7 +12,19 @@ hl.window_rule({match = {class = "^()$", title = "^()$" },                   no_
 -- Disable blur for every window
 hl.window_rule({match = {class = ".*" }, no_blur = true })
 
+-- Enable blur only for kitty
+hl.window_rule({match = {class = "^kitty$" }, no_blur = false })
+
 -- Floating
+-- Quickshell color palette
+hl.window_rule({match = {title = "^Color Palette$" }, float = true})
+hl.window_rule({match = {title = "^Color Palette$" }, center = true})
+hl.window_rule({match = {title = "^Color Palette$" }, size = {620, 490}})
+-- Quickshell alarms, timer and pomodoro
+hl.window_rule({match = {title = "^Quickshell Clock$" }, float = true})
+hl.window_rule({match = {title = "^Quickshell Clock$" }, center = true})
+hl.window_rule({match = {title = "^Quickshell Clock$" }, size = {560, 720}})
+
 hl.window_rule({match = {title = "^(Open File)(.*)$" },                      center = true})
 hl.window_rule({match = {title = "^(Open File)(.*)$" },                      float = true})
 hl.window_rule({match = {title = "^(Select a File)(.*)$" },                  center = true})
@@ -47,6 +65,7 @@ hl.window_rule({match = {class = "org.freedesktop.impl.portal.desktop.kde" }, fl
 hl.window_rule({match = {class = "org.freedesktop.impl.portal.desktop.kde" }, size = {"(monitor_w*0.60)", "(monitor_h*0.65)"} })
 hl.window_rule({match = {class = "^(Zotero)$" },                             float = true})
 hl.window_rule({match = {class = "^(Zotero)$" },                             size = {"(monitor_w*0.45)", "(monitor_h*0.45)"} })
+hl.window_rule({match = {class = "^(wofi)$" },                        float = true})
 
 -- Tiling
 hl.window_rule({match = {class = "^dev\\.warp\\.Warp$" }, tile = true})

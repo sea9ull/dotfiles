@@ -11,7 +11,7 @@ hl.config({
         border_size = 1,
 
         col = {
-            active_border = "rgba(595959aa)",
+            active_border = "rgba(6b8fb8cc)",
             inactive_border = "rgba(31313600)"
         },
     },
@@ -35,7 +35,7 @@ hl.config({
             ignore_opacity = true,
             special = false,
             new_optimizations = true,
-            size = 10,
+            size = 7,
             -- size = 4,
             passes = 3,
             brightness = 1,
@@ -50,10 +50,12 @@ hl.config({
         },
         shadow = {
             enabled = true,
-            offset = {0, 2},
-            range = 20,
-            render_power = 3,
-            color = "rgba(66404040)"
+            -- Centered blue glow around the focused window.
+            offset = {0, 0},
+            range = 3,
+            render_power = 2,
+            color = "rgba(6b8fb844)",
+            color_inactive = "rgba(00000000)"
         },
         -- Dim
         dim_inactive = true,

@@ -13,7 +13,9 @@ hl.bind("SUPER + G", hl.dsp.exec_cmd(BROWSER), {description = "Browser"} )
 -- hl.bind("SUPER + R", hl.dsp.exec_cmd("wofi --show drun") )
 hl.bind("SUPER + C", hl.dsp.exec_cmd(COLOR_PICKER), {description = "Color Picker"} )
 --hl.bind("SUPER + Slash", hl.dsp.exec_cmd("~/bin/launcher") )
-hl.bind("SUPER + Slash", hl.dsp.global("quickshell:launcher"), {description = "Toggle Launcher"} )
+hl.bind("SUPER + Slash", hl.dsp.exec_cmd(APP_LAUNCHER), {description = "Toggle Launcher"} )
+hl.bind("SUPER + M", hl.dsp.global("quickshell:launcher"), {description = "Toggle Launcher"} )
+hl.bind("SUPER + Z", hl.dsp.global("quickshell:session"), {description = "Toggle Launcher"} )
 
 
 --# Screenshot, Record, OCR, Color picker, Clipboard history
@@ -34,9 +36,9 @@ hl.bind("SUPER + Colon", hl.dsp.layout("splitratio -0.1"), {repeating = true} )
 hl.bind("SUPER + SHIFT + Q", hl.dsp.window.kill(), {description = "Forcefully zap a window"} )
 hl.bind("SUPER + Backspace", hl.dsp.window.close(), {description = "Close a window"} )
 hl.bind("SUPER + A", hl.dsp.window.float({action = "toggle"}), {description = "Float/Tile"}  )
-hl.bind("SUPER + F", hl.dsp.window.fullscreen({"maximized"}, {description = "Maximize"}) )
--- hl.bind("SUPER + F", hl.dsp.window.fullscreen_state({internal = 0, client = 3}, {description = "Fullscreen spoof"}) )
--- hl.bind("SUPER + F", hl.dsp.window.fullscreen({"fullscreen"}, {description = "Fullscreen"}) )
+hl.bind("SUPER + F", hl.dsp.window.fullscreen({"maximized"}), {description = "Maximize"} )
+-- hl.bind("SUPER + F", hl.dsp.window.fullscreen_state({internal = 0, client = 3}), {description = "Fullscreen spoof"} )
+-- hl.bind("SUPER + F", hl.dsp.window.fullscreen({"fullscreen"}), {description = "Fullscreen"} )
 hl.bind("SUPER + S", hl.dsp.window.move({workspace = "special:special", follow = false, description = "Send to scratchpad"}) )
 hl.bind("SUPER + Tab", hl.dsp.window.swap({direction = "left"}) )
 
