@@ -18,6 +18,7 @@ export TERM=kitty
 export OUTPUT_CHARSET=utf-8
 export LV="-0u8"
 
+export NODE_OPTIONS="--dns-result-order=ipv4first"
 
 # editor & pager
 export EDITOR=/usr/bin/nvim
