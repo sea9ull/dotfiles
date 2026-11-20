@@ -2,6 +2,9 @@
 -- MONITOR CONFIG
 -- ====================
 -- See https://wiki.hyprland.org/Configuring/Monitors/
+--
+-- 共通のフォールバック設定。マシン固有のモニタ設定は
+-- hosts/<hostname>/hypr/config/monitors.lua に置くと init.sh が上書きする。
 
 hl.monitor({
     output = "",
@@ -9,17 +12,3 @@ hl.monitor({
     position = "auto",
     scale = "1"
 })
-
-hl.monitor({
-    output = "HDMI-A-1",
-    mode = "1920x1200@59.95000",
-    position = "0x0",
-    scale = "1"
-})
-
--- hl.monitor({
---     output = "eDP-1",
---     mode = "2736x1824@59.95900",
---     position = "0x0",
---     scale = "2"
--- })

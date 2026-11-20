@@ -6,6 +6,43 @@
 ./init.sh
 ```
 
+`active_list.txt` に書かれたアプリの設定を `repository/<app>/` から
+`~/.config` などへシンボリックリンクします。
+
+## マシンごとの差分 (hosts/)
+
+複数台で共通の設定を使いつつ、マシン固有の設定だけを分けられます。
+`init.sh` はホスト名 (`uname -n`) で以下を自動的に切り替えます。
+
+- `hosts/<hostname>/active_list.txt` があれば、ルートの `active_list.txt`
+  より優先して使う(マシンごとに有効化するアプリを変えられる)
+- `hosts/<hostname>/<app>/config/...` にあるファイルは、共通設定のリンクを
+  張った**後に**同じリンク先へ上書きリンクする(ファイル単位の差し替え)
+
+例: このリポジトリでは `hosts/GlossyGorilla/hypr/config/monitors.lua` が
+共通の `repository/hypr/config/monitors.lua`(フォールバック)を上書きします。
+モニタ構成や入力デバイスなどマシン固有の設定はここに置いてください。
+
+新しいマシンでの導入手順:
+
+```bash
+git clone <このリポジトリ> ~/env/dotfiles
+cd ~/env/dotfiles
+mkdir -p hosts/$(uname -n)
+cp active_list.txt hosts/$(uname -n)/active_list.txt   # 必要に応じて編集
+./init.sh
+```
+
+### 日常の同期
+
+設定ファイルはシンボリックリンクなので、編集はそのままリポジトリの
+変更になります。編集前に pull、編集後はこまめに push してください。
+
+```bash
+git pull --rebase   # 作業を始める前
+git add -p && git commit && git push   # 設定を変えたら
+```
+
 ## Wi-Fi (wofi + iwd)
 
 `wofi`、Python 3、起動済みの `iwd` が必要です。`active_list.txt` に

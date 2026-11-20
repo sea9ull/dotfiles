@@ -4,8 +4,16 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 DOTFILES_DIR=$SCRIPT_DIR
 # DOTFILES_DIR=$HOME/env/dotfiles
 REPOSITORY=$DOTFILES_DIR/repository
-APPS=$DOTFILES_DIR/active_list.txt
+HOST_NAME=$(uname -n)
+HOST_DIR=$DOTFILES_DIR/hosts/$HOST_NAME
 XDG_CONFIG_HOME=$HOME/.config
+
+# ホスト別の active_list.txt があればそちらを優先する
+if [ -f "$HOST_DIR/active_list.txt" ]; then
+    APPS=$HOST_DIR/active_list.txt
+else
+    APPS=$DOTFILES_DIR/active_list.txt
+fi
 
 if [ ! -d $XDG_CONFIG_HOME ]; then
     mkdir $XDG_CONFIG_HOME
@@ -86,6 +94,17 @@ cat $APPS | while read line; do
         if [ -n "$BIND_HOME" ]; then
             print_debug "[bind-home] $BIND_HOME"
             bind_config "$settings/$BIND_HOME"
+        fi
+        ## ホスト別オーバーライド (hosts/<hostname>/<app>/ 以下の同名ファイルで上書き)
+        if [ -d "$HOST_DIR/$app" ]; then
+            if [ -n "$BIND_CONFIG" ]; then
+                print_debug "[bind-host-config] $HOST_DIR/$app/$BIND_CONFIG"
+                bind_config "$HOST_DIR/$app/$BIND_CONFIG"
+            fi
+            if [ -n "$BIND_HOME" ]; then
+                print_debug "[bind-host-home] $HOST_DIR/$app/$BIND_HOME"
+                bind_config "$HOST_DIR/$app/$BIND_HOME"
+            fi
         fi
     else
         print_debug "no theme exists [$settings/$theme]"
