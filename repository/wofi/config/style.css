@@ -1,49 +1,51 @@
 @define-color fg #D8D9DA;
 @define-color red #F28FAD;
 
+/*
 * {
-  border: none;
-  outline: none;
+    border: none;
+    outline: none;
 }
+*/
 
 window {
-  font-family: "HackGen Console NF";
-  font-size: 6px;
-  font-weight: bold;
-  background-color: rgba(13, 13, 13, 0.9);
-  color: @fg;
-  border-radius: 8px;
-  padding: 1rem 2rem;
+    font-family: "UDEV Gothic NFLG";
+    font-size: 20px;
+    font-weight: bold;
+    background-color: rgba(13, 13, 13, 0.9);
+    color: @fg;
+    border-radius: 8px;
+    padding: 1rem 2rem;
 }
 
 #input {
-  background-color: rgba(13, 13, 13, 0.2);
-  color: @fg;
-  margin: 2rem 12rem 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  border:none;
+    background-color: rgba(13, 13, 13, 0.2);
+    color: @fg;
+    margin: 2rem 12rem 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    border:none;
 }
 
 #input:focus {
-  background-color: rgba(13, 13, 13, 0.9);
-  border:none;
+    background-color: rgba(13, 13, 13, 0.9);
+    border:none;
 }
 
 #entry {
-  padding: 1rem;
+    padding: 1rem;
 }
 
 #entry:selected {
-  border-radius: 0;
-  background: none;
+    border-radius: 0;
+    background: none;
 }
 
 #text{
 }
 
 #text:selected {
-  color: @red;
+    color: @red;
 }
 
 .entry{
@@ -53,6 +55,6 @@ window {
 }
 
 #text {
-  font-size: 14px;
-  font-weight: bold;
+    font-size: 14px;
+    font-weight: bold;
 }
