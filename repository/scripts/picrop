@@ -1,0 +1,893 @@
+#!/usr/bin/env python3
+"""picrop — simple image crop/resize/rotate/flip GUI (PySide6 + Pillow)."""
+
+import sys
+from pathlib import Path
+
+from PIL import Image, ImageOps
+from PySide6.QtCore import QObject, QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import (
+    QAction, QColor, QImage, QKeySequence, QPainterPath, QPen, QPixmap,
+    QShortcut, QUndoCommand, QUndoStack,
+)
+from PySide6.QtWidgets import (
+    QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDialog,
+    QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame,
+    QGraphicsObject, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView,
+    QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
+    QPushButton, QRadioButton, QSizePolicy, QSpinBox, QToolButton,
+    QVBoxLayout, QWidget,
+)
+
+APP_NAME = "picrop"
+OPEN_FILTER = "画像 (*.jpg *.jpeg *.png *.webp *.bmp);;すべてのファイル (*)"
+SAVE_FILTER = "JPEG (*.jpg *.jpeg);;PNG (*.png);;WebP (*.webp);;BMP (*.bmp)"
+
+ASPECTS = [
+    ("自由", None), ("元画像", "orig"), ("1:1", 1.0),
+    ("4:3", 4 / 3), ("3:4", 3 / 4), ("16:9", 16 / 9), ("9:16", 9 / 16),
+    ("3:2", 3 / 2), ("2:3", 2 / 3),
+]
+
+
+def pil_to_qimage(img):
+    if img.mode == "RGB":
+        data = img.tobytes("raw", "RGBX")
+        fmt = QImage.Format_RGBX8888
+    else:
+        if img.mode != "RGBA":
+            img = img.convert("RGBA")
+        data = img.tobytes("raw", "RGBA")
+        fmt = QImage.Format_RGBA8888
+    return QImage(data, img.width, img.height, img.width * 4, fmt).copy()
+
+
+class ImageDoc(QObject):
+    """元画像と操作列を保持するモデル。undoは元画像からのリプレイで行う。"""
+
+    changed = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self.base = None
+        self.current = None
+        self.ops = []
+        self.path = None
+        self.meta = {}
+
+    def load(self, path):
+        img = Image.open(path)
+        img = ImageOps.exif_transpose(img)
+        img.load()
+        self.base = self.current = img
+        self.ops = []
+        self.path = Path(path)
+        # exif_transpose 済みなので exif に Orientation は残らない
+        self.meta = {k: img.info[k] for k in ("exif", "icc_profile")
+                     if img.info.get(k)}
+        self.changed.emit()
+
+    @staticmethod
+    def _apply(img, op):
+        kind, arg = op
+        if kind == "rotate":
+            t = Image.Transpose.ROTATE_270 if arg == 90 else Image.Transpose.ROTATE_90
+            return img.transpose(t)
+        if kind == "flip":
+            t = (Image.Transpose.FLIP_LEFT_RIGHT if arg == "h"
+                 else Image.Transpose.FLIP_TOP_BOTTOM)
+            return img.transpose(t)
+        if kind == "crop":
+            return img.crop(arg)
+        if kind == "resize":
+            return img.resize(arg, Image.Resampling.LANCZOS)
+        raise ValueError(op)
+
+    def push(self, op):
+        self.ops.append(op)
+        self.current = self._apply(self.current, op)
+        self.changed.emit()
+
+    def pop(self):
+        self.ops.pop()
+        img = self.base
+        for op in self.ops:
+            img = self._apply(img, op)
+        self.current = img
+        self.changed.emit()
+
+    def save(self, path):
+        path = Path(path)
+        img = self.current
+        params = dict(self.meta)
+        ext = path.suffix.lower()
+        if ext in (".jpg", ".jpeg"):
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            params["quality"] = 95
+        elif ext == ".webp":
+            params["quality"] = 95
+        elif ext == ".bmp":
+            params = {}
+            if img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGB")
+        img.save(path, **params)
+        self.path = path
+
+
+class EditCommand(QUndoCommand):
+    def __init__(self, doc, op, text):
+        super().__init__(text)
+        self.doc = doc
+        self.op = op
+
+    def redo(self):
+        self.doc.push(self.op)
+
+    def undo(self):
+        self.doc.pop()
+
+
+# crop ハンドル id
+H_TL, H_TR, H_BL, H_BR, H_L, H_R, H_T, H_B = range(8)
+_CURSORS = {
+    H_TL: Qt.SizeFDiagCursor, H_BR: Qt.SizeFDiagCursor,
+    H_TR: Qt.SizeBDiagCursor, H_BL: Qt.SizeBDiagCursor,
+    H_L: Qt.SizeHorCursor, H_R: Qt.SizeHorCursor,
+    H_T: Qt.SizeVerCursor, H_B: Qt.SizeVerCursor,
+}
+
+
+class CropOverlay(QGraphicsObject):
+    """切り抜き矩形の表示とマウス操作。座標は画像ピクセル（シーン座標）。"""
+
+    rectChanged = Signal()
+    MIN = 2.0
+
+    def __init__(self, canvas):
+        super().__init__()
+        self.canvas = canvas
+        self.bounds = QRectF()
+        self.rect = QRectF()
+        self.ratio = None  # w/h, None=自由
+        self.drag = None
+        self.setAcceptHoverEvents(True)
+        self.setZValue(10)
+
+    # --- geometry -----------------------------------------------------
+    def boundingRect(self):
+        return self.bounds
+
+    def set_bounds(self, rect):
+        self.prepareGeometryChange()
+        self.bounds = QRectF(rect)
+
+    def set_rect(self, rect, emit=True):
+        self.rect = QRectF(rect)
+        self.update()
+        if emit:
+            self.rectChanged.emit()
+
+    def reset_rect(self):
+        self.set_rect(self.bounds)
+
+    def set_ratio(self, ratio):
+        self.ratio = ratio
+        if not ratio or self.rect.isEmpty():
+            return
+        c = self.rect.center()
+        w = self.rect.width()
+        h = w / ratio
+        if h > self.bounds.height():
+            h = self.bounds.height()
+            w = h * ratio
+        if w > self.bounds.width():
+            w = self.bounds.width()
+            h = w / ratio
+        r = QRectF(c.x() - w / 2, c.y() - h / 2, w, h)
+        self.set_rect(self._clamp_into(r))
+
+    def center_rect(self):
+        if self.rect.isEmpty():
+            return
+        r = QRectF(self.rect)
+        r.moveCenter(self.bounds.center())
+        self.set_rect(r)
+
+    def _clamp_into(self, r):
+        dx = max(0.0, self.bounds.left() - r.left()) \
+            + min(0.0, self.bounds.right() - r.right())
+        dy = max(0.0, self.bounds.top() - r.top()) \
+            + min(0.0, self.bounds.bottom() - r.bottom())
+        return r.translated(dx, dy)
+
+    def _scale(self):
+        return max(self.canvas.scale_factor(), 1e-6)
+
+    def _handles(self):
+        r = self.rect
+        return {
+            H_TL: r.topLeft(), H_TR: r.topRight(),
+            H_BL: r.bottomLeft(), H_BR: r.bottomRight(),
+            H_L: QPointF(r.left(), r.center().y()),
+            H_R: QPointF(r.right(), r.center().y()),
+            H_T: QPointF(r.center().x(), r.top()),
+            H_B: QPointF(r.center().x(), r.bottom()),
+        }
+
+    def _handle_at(self, pos):
+        if self.rect.isEmpty():
+            return -1
+        tol = 10.0 / self._scale()
+        best, best_d = -1, tol
+        for hid, p in self._handles().items():
+            d = max(abs(pos.x() - p.x()), abs(pos.y() - p.y()))
+            if d <= best_d:
+                # 角を辺より優先する
+                if best < 0 or (hid < 4 and best >= 4) or d < best_d:
+                    best, best_d = hid, d
+        return best
+
+    # --- paint --------------------------------------------------------
+    def paint(self, painter, option, widget=None):
+        if self.rect.isEmpty():
+            painter.fillRect(self.bounds, QColor(0, 0, 0, 90))
+            return
+        outside = QPainterPath()
+        outside.addRect(self.bounds)
+        inner = QPainterPath()
+        inner.addRect(self.rect)
+        painter.fillPath(outside.subtracted(inner), QColor(0, 0, 0, 120))
+
+        grid = QPen(QColor(255, 255, 255, 110))
+        grid.setCosmetic(True)
+        painter.setPen(grid)
+        r = self.rect
+        for i in (1, 2):
+            x = r.left() + r.width() * i / 3
+            y = r.top() + r.height() * i / 3
+            painter.drawLine(QPointF(x, r.top()), QPointF(x, r.bottom()))
+            painter.drawLine(QPointF(r.left(), y), QPointF(r.right(), y))
+
+        border = QPen(QColor(255, 255, 255), 1.5)
+        border.setCosmetic(True)
+        painter.setPen(border)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(r)
+
+        s = 8.0 / self._scale()
+        pen = QPen(QColor(0, 0, 0, 180))
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        painter.setBrush(QColor(255, 255, 255))
+        for p in self._handles().values():
+            painter.drawRect(QRectF(p.x() - s / 2, p.y() - s / 2, s, s))
+
+    # --- mouse --------------------------------------------------------
+    def hoverMoveEvent(self, event):
+        hid = self._handle_at(event.pos())
+        if hid >= 0:
+            self.setCursor(_CURSORS[hid])
+        elif self.rect.contains(event.pos()):
+            self.setCursor(Qt.SizeAllCursor)
+        else:
+            self.setCursor(Qt.CrossCursor)
+
+    def mousePressEvent(self, event):
+        pos = event.pos()
+        hid = self._handle_at(pos)
+        if hid >= 0:
+            if hid < 4:  # 角: 対角を固定
+                opposite = {H_TL: H_BR, H_TR: H_BL, H_BL: H_TR, H_BR: H_TL}
+                self.drag = ("corner", self._handles()[opposite[hid]])
+            else:
+                self.drag = ("edge", hid)
+        elif self.rect.contains(pos):
+            self.drag = ("move", pos - self.rect.topLeft())
+        else:
+            anchor = QPointF(
+                min(max(pos.x(), self.bounds.left()), self.bounds.right()),
+                min(max(pos.y(), self.bounds.top()), self.bounds.bottom()))
+            self.drag = ("corner", anchor)
+            self.set_rect(QRectF(anchor, anchor))
+        event.accept()
+
+    def mouseMoveEvent(self, event):
+        if not self.drag:
+            return
+        kind, arg = self.drag
+        pos = event.pos()
+        if kind == "corner":
+            self.set_rect(self._rect_from_anchor(arg, pos))
+        elif kind == "edge":
+            self.set_rect(self._resize_edge(arg, pos))
+        elif kind == "move":
+            r = QRectF(self.rect)
+            r.moveTopLeft(pos - arg)
+            self.set_rect(self._clamp_into(r))
+        event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self.drag = None
+        event.accept()
+
+    def _rect_from_anchor(self, anchor, pos):
+        b = self.bounds
+        ax, ay = anchor.x(), anchor.y()
+        dx = pos.x() - ax
+        dy = pos.y() - ay
+        sx = 1.0 if dx >= 0 else -1.0
+        sy = 1.0 if dy >= 0 else -1.0
+        if self.ratio:
+            w = max(abs(dx), abs(dy) * self.ratio, self.MIN)
+            avail_x = (b.right() - ax) if sx > 0 else (ax - b.left())
+            avail_y = (b.bottom() - ay) if sy > 0 else (ay - b.top())
+            w = min(w, avail_x, avail_y * self.ratio)
+            h = w / self.ratio
+        else:
+            w = min(abs(dx), (b.right() - ax) if sx > 0 else (ax - b.left()))
+            h = min(abs(dy), (b.bottom() - ay) if sy > 0 else (ay - b.top()))
+            w = max(w, self.MIN)
+            h = max(h, self.MIN)
+        return QRectF(ax, ay, sx * w, sy * h).normalized()
+
+    def _resize_edge(self, hid, pos):
+        b = self.bounds
+        r = QRectF(self.rect)
+        m = self.MIN
+        if not self.ratio:
+            if hid == H_L:
+                r.setLeft(min(max(b.left(), pos.x()), r.right() - m))
+            elif hid == H_R:
+                r.setRight(max(min(b.right(), pos.x()), r.left() + m))
+            elif hid == H_T:
+                r.setTop(min(max(b.top(), pos.y()), r.bottom() - m))
+            elif hid == H_B:
+                r.setBottom(max(min(b.bottom(), pos.y()), r.top() + m))
+            return r
+        # 比率固定時: 反対側の辺の中点を固定して拡縮
+        cx, cy = r.center().x(), r.center().y()
+        if hid in (H_L, H_R):
+            w = (pos.x() - r.left()) if hid == H_R else (r.right() - pos.x())
+            w = max(m, w)
+            w = min(w,
+                    (b.right() - r.left()) if hid == H_R else (r.right() - b.left()),
+                    2 * min(cy - b.top(), b.bottom() - cy) * self.ratio)
+            h = w / self.ratio
+            x0 = r.left() if hid == H_R else r.right() - w
+            return QRectF(x0, cy - h / 2, w, h)
+        h = (pos.y() - r.top()) if hid == H_B else (r.bottom() - pos.y())
+        h = max(m, h)
+        h = min(h,
+                (b.bottom() - r.top()) if hid == H_B else (r.bottom() - b.top()),
+                2 * min(cx - b.left(), b.right() - cx) / self.ratio)
+        w = h * self.ratio
+        y0 = r.top() if hid == H_B else r.bottom() - h
+        return QRectF(cx - w / 2, y0, w, h)
+
+
+class Canvas(QGraphicsView):
+    zoomChanged = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self._scene = QGraphicsScene(self)
+        self.setScene(self._scene)
+        self.pix = QGraphicsPixmapItem()
+        self.pix.setTransformationMode(Qt.SmoothTransformation)
+        self._scene.addItem(self.pix)
+        self.overlay = CropOverlay(self)
+        self.overlay.hide()
+        self._scene.addItem(self.overlay)
+
+        self.setRenderHint(self.renderHints().SmoothPixmapTransform
+                           if hasattr(self.renderHints(), "SmoothPixmapTransform")
+                           else Qt.SmoothTransformation)
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.setBackgroundBrush(QColor(40, 40, 40))
+        self.auto_fit = True
+        self.zoomChanged.connect(self.overlay.update)
+
+    def set_image(self, qimage):
+        self.pix.setPixmap(QPixmap.fromImage(qimage))
+        rect = QRectF(0, 0, qimage.width(), qimage.height())
+        self._scene.setSceneRect(rect)
+        self.overlay.set_bounds(rect)
+        if self.auto_fit:
+            self.fit()
+        self.zoomChanged.emit()
+
+    def scale_factor(self):
+        return self.transform().m11()
+
+    def fit(self):
+        if self._scene.sceneRect().isEmpty():
+            return
+        self.fitInView(self._scene.sceneRect(), Qt.KeepAspectRatio)
+        self.auto_fit = True
+        self.zoomChanged.emit()
+
+    def zoom_reset(self):
+        self.resetTransform()
+        self.auto_fit = False
+        self.zoomChanged.emit()
+
+    def zoom_by(self, factor):
+        new = self.scale_factor() * factor
+        if 0.02 <= new <= 40:
+            self.scale(factor, factor)
+            self.auto_fit = False
+            self.zoomChanged.emit()
+
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.ControlModifier:
+            self.zoom_by(1.25 if event.angleDelta().y() > 0 else 0.8)
+        else:
+            super().wheelEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.auto_fit:
+            self.fit()
+
+    def start_crop(self):
+        self.setDragMode(QGraphicsView.NoDrag)
+        self.overlay.reset_rect()
+        self.overlay.show()
+
+    def end_crop(self):
+        self.overlay.hide()
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+
+
+class ResizeDialog(QDialog):
+    def __init__(self, parent, w, h):
+        super().__init__(parent)
+        self.setWindowTitle("リサイズ")
+        self.ow, self.oh = w, h
+        self._sync = False
+
+        self.rb_px = QRadioButton("ピクセル指定")
+        self.rb_pct = QRadioButton("パーセント指定")
+        self.rb_px.setChecked(True)
+        self.spin_w = QSpinBox()
+        self.spin_h = QSpinBox()
+        for s, v in ((self.spin_w, w), (self.spin_h, h)):
+            s.setRange(1, 65535)
+            s.setValue(v)
+            s.setSuffix(" px")
+        self.chk_aspect = QCheckBox("縦横比を保持")
+        self.chk_aspect.setChecked(True)
+        self.spin_pct = QDoubleSpinBox()
+        self.spin_pct.setRange(0.1, 1000.0)
+        self.spin_pct.setValue(100.0)
+        self.spin_pct.setSuffix(" %")
+        self.spin_pct.setEnabled(False)
+        self.result_label = QLabel()
+
+        form = QFormLayout(self)
+        form.addRow(self.rb_px)
+        form.addRow("幅", self.spin_w)
+        form.addRow("高さ", self.spin_h)
+        form.addRow(self.chk_aspect)
+        form.addRow(self.rb_pct)
+        form.addRow("倍率", self.spin_pct)
+        form.addRow(self.result_label)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+        self.rb_px.toggled.connect(self._mode_changed)
+        self.spin_w.valueChanged.connect(lambda v: self._px_changed("w", v))
+        self.spin_h.valueChanged.connect(lambda v: self._px_changed("h", v))
+        self.spin_pct.valueChanged.connect(lambda _: self._update_label())
+        self._update_label()
+
+    def _mode_changed(self):
+        px = self.rb_px.isChecked()
+        for wgt in (self.spin_w, self.spin_h, self.chk_aspect):
+            wgt.setEnabled(px)
+        self.spin_pct.setEnabled(not px)
+        self._update_label()
+
+    def _px_changed(self, which, value):
+        if self._sync:
+            return
+        if self.chk_aspect.isChecked():
+            self._sync = True
+            if which == "w":
+                self.spin_h.setValue(max(1, round(value * self.oh / self.ow)))
+            else:
+                self.spin_w.setValue(max(1, round(value * self.ow / self.oh)))
+            self._sync = False
+        self._update_label()
+
+    def size(self):
+        if self.rb_px.isChecked():
+            return self.spin_w.value(), self.spin_h.value()
+        p = self.spin_pct.value() / 100.0
+        return max(1, round(self.ow * p)), max(1, round(self.oh * p))
+
+    def _update_label(self):
+        w, h = self.size()
+        self.result_label.setText(f"出力サイズ: {w} × {h} px")
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.doc = ImageDoc()
+        self.undo_stack = QUndoStack(self)
+        self.canvas = Canvas()
+        self._sync_spins = False
+        self.crop_mode = False
+
+        self._build_crop_panel()
+        self._build_sidebar()
+        central = QWidget()
+        layout = QHBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self.sidebar)
+        layout.addWidget(self.canvas, 1)
+        self.setCentralWidget(central)
+
+        self.status_info = QLabel()
+        self.statusBar().addPermanentWidget(self.status_info)
+
+        self.doc.changed.connect(self._doc_changed)
+        self.undo_stack.cleanChanged.connect(self._on_clean_changed)
+        self.canvas.zoomChanged.connect(self._update_status)
+        self.canvas.overlay.rectChanged.connect(self._crop_rect_changed)
+
+        self._shortcuts()
+        self._set_enabled(False)
+        self.resize(1100, 750)
+        self._update_title()
+        self.setAcceptDrops(True)
+
+    # --- UI construction ---------------------------------------------
+    def _build_sidebar(self):
+        def act(text, slot, shortcut=None, tip=None):
+            a = QAction(text, self)
+            if shortcut:
+                a.setShortcut(QKeySequence(shortcut))
+            if tip:
+                a.setToolTip(tip)
+            a.triggered.connect(slot)
+            self.addAction(a)
+            return a
+
+        def btn(action):
+            b = QToolButton()
+            b.setDefaultAction(action)
+            b.setToolButtonStyle(Qt.ToolButtonTextOnly)
+            b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            b.setFocusPolicy(Qt.NoFocus)
+            return b
+
+        def sep():
+            f = QFrame()
+            f.setFrameShape(QFrame.HLine)
+            f.setFrameShadow(QFrame.Sunken)
+            return f
+
+        open_act = act("開く", self.open_dialog, "Ctrl+O")
+        undo = self.undo_stack.createUndoAction(self, "元に戻す")
+        undo.setShortcut(QKeySequence.Undo)
+        redo = self.undo_stack.createRedoAction(self, "やり直す")
+        redo.setShortcut(QKeySequence.Redo)
+        self.addAction(undo)
+        self.addAction(redo)
+        self.edit_actions = [
+            act("✂ 切り抜き", self.toggle_crop, tip="切り抜き (C)"),
+            act("⤢ リサイズ", self.resize_dialog),
+            act("⟲ 左回転", lambda: self._push(("rotate", -90), "左回転"),
+                tip="左に90度回転 (Shift+R)"),
+            act("⟳ 右回転", lambda: self._push(("rotate", 90), "右回転"),
+                tip="右に90度回転 (R)"),
+            act("↔ 左右反転", lambda: self._push(("flip", "h"), "左右反転"),
+                tip="左右反転 (H)"),
+            act("↕ 上下反転", lambda: self._push(("flip", "v"), "上下反転"),
+                tip="上下反転 (V)"),
+            act("保存", self.save, "Ctrl+S"),
+            act("別名保存", self.save_as, "Ctrl+Shift+S"),
+        ]
+
+        menu = QVBoxLayout()
+        menu.setSpacing(4)
+        menu.addWidget(btn(open_act))
+        menu.addWidget(sep())
+        undo_row = QHBoxLayout()
+        undo_row.addWidget(btn(undo))
+        undo_row.addWidget(btn(redo))
+        menu.addLayout(undo_row)
+        menu.addWidget(sep())
+        for a in self.edit_actions[:6]:
+            menu.addWidget(btn(a))
+        menu.addWidget(sep())
+        for a in self.edit_actions[6:]:
+            menu.addWidget(btn(a))
+
+        self.sidebar = QWidget()
+        side = QVBoxLayout(self.sidebar)
+        side.setContentsMargins(8, 8, 8, 8)
+        side.addLayout(menu)
+        side.addStretch(1)
+        side.addWidget(self.crop_panel)
+        self.sidebar.setFixedWidth(190)
+
+    def _build_crop_panel(self):
+        self.crop_panel = QGroupBox("切り抜き")
+        v = QVBoxLayout(self.crop_panel)
+        form = QFormLayout()
+        self.aspect_combo = QComboBox()
+        for label, ratio in ASPECTS:
+            self.aspect_combo.addItem(label, ratio)
+        self.aspect_combo.currentIndexChanged.connect(self._aspect_changed)
+        form.addRow("比率", self.aspect_combo)
+        self.spins = {}
+        for key, label in (("x", "X"), ("y", "Y"), ("w", "幅"), ("h", "高さ")):
+            s = QSpinBox()
+            s.setRange(0, 65535)
+            s.setKeyboardTracking(False)
+            s.valueChanged.connect(self._spin_changed)
+            self.spins[key] = s
+            form.addRow(label, s)
+        v.addLayout(form)
+        center_btn = QPushButton("中央揃え")
+        center_btn.setToolTip("選択範囲の中心を画像の中央に合わせる (M)")
+        center_btn.clicked.connect(self.center_crop)
+        v.addWidget(center_btn)
+        apply_btn = QPushButton("適用 (Enter)")
+        apply_btn.clicked.connect(self.apply_crop)
+        cancel_btn = QPushButton("キャンセル (Esc)")
+        cancel_btn.clicked.connect(self.cancel_crop)
+        v.addWidget(apply_btn)
+        v.addWidget(cancel_btn)
+        self.crop_panel.hide()
+
+    def _shortcuts(self):
+        def guarded(fn):
+            def run():
+                w = QApplication.focusWidget()
+                if isinstance(w, (QAbstractSpinBox, QLineEdit)):
+                    return
+                fn()
+            return run
+
+        for key, fn in (
+            ("C", self.toggle_crop),
+            ("R", lambda: self._push(("rotate", 90), "右回転")),
+            ("Shift+R", lambda: self._push(("rotate", -90), "左回転")),
+            ("H", lambda: self._push(("flip", "h"), "左右反転")),
+            ("V", lambda: self._push(("flip", "v"), "上下反転")),
+            ("M", self.center_crop),
+            ("0", self.canvas.fit),
+            ("1", self.canvas.zoom_reset),
+        ):
+            QShortcut(QKeySequence(key), self).activated.connect(guarded(fn))
+        for key in ("Return", "Enter"):
+            QShortcut(QKeySequence(key), self).activated.connect(
+                self.apply_crop)
+        QShortcut(QKeySequence("Escape"), self).activated.connect(
+            self.cancel_crop)
+
+    def _set_enabled(self, enabled):
+        for a in self.edit_actions:
+            a.setEnabled(enabled)
+
+    # --- document ----------------------------------------------------
+    def open_dialog(self):
+        if not self._confirm_discard():
+            return
+        start = str(self.doc.path.parent) if self.doc.path else str(Path.home())
+        path, _ = QFileDialog.getOpenFileName(self, "画像を開く", start,
+                                              OPEN_FILTER)
+        if path:
+            self.open_path(path)
+
+    def open_path(self, path):
+        try:
+            self.doc.load(path)
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.critical(self, APP_NAME,
+                                 f"開けませんでした:\n{path}\n\n{e}")
+            return
+        self.undo_stack.clear()
+        self.cancel_crop()
+        self.canvas.auto_fit = True
+        self.canvas.fit()
+
+    def _doc_changed(self):
+        if self.doc.current is None:
+            return
+        self.canvas.set_image(pil_to_qimage(self.doc.current))
+        self._set_enabled(True)
+        self._update_title()
+        self._update_status()
+
+    def _push(self, op, text):
+        if self.doc.current is None:
+            return
+        if self.crop_mode:
+            self.cancel_crop()
+        self.undo_stack.push(EditCommand(self.doc, op, text))
+
+    # --- crop ---------------------------------------------------------
+    def toggle_crop(self):
+        if self.doc.current is None:
+            return
+        if self.crop_mode:
+            self.cancel_crop()
+            return
+        w, h = self.doc.current.size
+        for key, hi in (("x", w - 1), ("y", h - 1), ("w", w), ("h", h)):
+            self.spins[key].setMaximum(max(hi, 1))
+        self.crop_mode = True
+        self.crop_panel.show()
+        self.canvas.overlay.ratio = self.aspect_combo.currentData() \
+            if self.aspect_combo.currentData() != "orig" else w / h
+        self.canvas.start_crop()
+        self._crop_rect_changed()
+
+    def cancel_crop(self):
+        if not self.crop_mode:
+            return
+        self.crop_mode = False
+        self.crop_panel.hide()
+        self.canvas.end_crop()
+
+    def apply_crop(self):
+        if not self.crop_mode:
+            return
+        r = self.canvas.overlay.rect
+        w, h = self.doc.current.size
+        x0 = max(0, round(r.left()))
+        y0 = max(0, round(r.top()))
+        x1 = min(w, round(r.right()))
+        y1 = min(h, round(r.bottom()))
+        self.cancel_crop()
+        if x1 - x0 < 1 or y1 - y0 < 1 or (x0, y0, x1, y1) == (0, 0, w, h):
+            return
+        self._push(("crop", (x0, y0, x1, y1)), "切り抜き")
+
+    def center_crop(self):
+        if self.crop_mode:
+            self.canvas.overlay.center_rect()
+
+    def _aspect_changed(self):
+        ratio = self.aspect_combo.currentData()
+        if ratio == "orig" and self.doc.current is not None:
+            w, h = self.doc.current.size
+            ratio = w / h
+        self.canvas.overlay.set_ratio(ratio)
+
+    def _crop_rect_changed(self):
+        r = self.canvas.overlay.rect
+        self._sync_spins = True
+        self.spins["x"].setValue(round(r.left()))
+        self.spins["y"].setValue(round(r.top()))
+        self.spins["w"].setValue(round(r.width()))
+        self.spins["h"].setValue(round(r.height()))
+        self._sync_spins = False
+
+    def _spin_changed(self):
+        if self._sync_spins or self.doc.current is None:
+            return
+        r = QRectF(self.spins["x"].value(), self.spins["y"].value(),
+                   max(1, self.spins["w"].value()),
+                   max(1, self.spins["h"].value()))
+        ov = self.canvas.overlay
+        r = ov._clamp_into(r.intersected(ov.bounds) if r.width() > ov.bounds.width()
+                           or r.height() > ov.bounds.height() else r)
+        ov.set_rect(r, emit=False)
+
+    # --- resize -------------------------------------------------------
+    def resize_dialog(self):
+        if self.doc.current is None:
+            return
+        self.cancel_crop()
+        w, h = self.doc.current.size
+        dlg = ResizeDialog(self, w, h)
+        if dlg.exec() == QDialog.Accepted:
+            nw, nh = dlg.size()
+            if (nw, nh) != (w, h):
+                self._push(("resize", (nw, nh)), "リサイズ")
+
+    # --- save ---------------------------------------------------------
+    def save(self):
+        if self.doc.current is None:
+            return
+        if self.doc.path is None:
+            self.save_as()
+            return
+        ret = QMessageBox.question(
+            self, APP_NAME, f"{self.doc.path.name} を上書き保存しますか?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if ret != QMessageBox.Yes:
+            return
+        self._do_save(self.doc.path)
+
+    def save_as(self):
+        if self.doc.current is None:
+            return
+        start = str(self.doc.path) if self.doc.path else str(Path.home())
+        path, _ = QFileDialog.getSaveFileName(self, "別名で保存", start,
+                                              SAVE_FILTER)
+        if not path:
+            return
+        if not Path(path).suffix:
+            path += self.doc.path.suffix if self.doc.path else ".png"
+        self._do_save(path)
+
+    def _do_save(self, path):
+        try:
+            self.doc.save(path)
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.critical(self, APP_NAME, f"保存に失敗しました:\n{e}")
+            return
+        self.undo_stack.setClean()
+        self._update_title()
+        self.statusBar().showMessage(f"保存しました: {path}", 4000)
+
+    # --- misc ---------------------------------------------------------
+    def _on_clean_changed(self, clean):
+        self._update_title()
+
+    def _update_title(self):
+        if self.doc.current is None:
+            self.setWindowTitle(APP_NAME)
+            return
+        dirty = "" if self.undo_stack.isClean() else "*"
+        name = self.doc.path.name if self.doc.path else "無題"
+        w, h = self.doc.current.size
+        self.setWindowTitle(f"{name}{dirty} ({w}×{h}) — {APP_NAME}")
+
+    def _update_status(self):
+        if self.doc.current is None:
+            self.status_info.setText("")
+            return
+        w, h = self.doc.current.size
+        zoom = round(self.canvas.scale_factor() * 100)
+        self.status_info.setText(f"{w} × {h} px   {zoom}%")
+
+    def _confirm_discard(self):
+        if self.undo_stack.isClean():
+            return True
+        ret = QMessageBox.question(
+            self, APP_NAME, "未保存の変更があります。破棄しますか?",
+            QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
+        return ret == QMessageBox.Discard
+
+    def closeEvent(self, event):
+        if self._confirm_discard():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if urls and self._confirm_discard():
+            self.open_path(urls[0].toLocalFile())
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+    win = MainWindow()
+    win.show()
+    if len(sys.argv) > 1:
+        win.open_path(sys.argv[1])
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

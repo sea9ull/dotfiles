@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=picrop
+Comment=シンプルな画像切り抜き・リサイズツール
+Exec=picrop %f
+Icon=image-x-generic
+Terminal=false
+Categories=Graphics;RasterGraphics;
+MimeType=image/jpeg;image/png;image/webp;image/bmp;

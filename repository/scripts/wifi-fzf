@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Select and connect Wi-Fi networks using fzf and iwd."""
+
+import getpass
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+
+def iwctl(*args):
+    result = subprocess.run(
+        ["iwctl", "--dont-ask", *args], stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        env={**os.environ, "LC_ALL": "C", "TERM": "dumb"}, timeout=45,
+    )
+    result.stdout = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", result.stdout)
+    return result
+
+
+def menu(prompt, entries=(), password=False):
+    if password:
+        return getpass.getpass(f"{prompt}: ")
+    result = subprocess.run(
+        ["fzf", "--height=60%", "--layout=reverse", "--border",
+         "--no-multi", "--prompt", f"{prompt} > "],
+        input="\n".join(entries), text=True, stdout=subprocess.PIPE,
+        env={**os.environ, "FZF_DEFAULT_OPTS": "", "FZF_DEFAULT_OPTS_FILE": "/dev/null"},
+    )
+    if result.returncode in (1, 130):
+        raise SystemExit(0)
+    if result.returncode:
+        raise RuntimeError("fzfの起動に失敗しました")
+    return result.stdout.removesuffix("\n")
+
+
+def message(text):
+    print(text, file=sys.stderr)
+
+
+def require(result):
+    if result.returncode:
+        message(result.stdout.strip() or "iwd command failed")
+        raise SystemExit(1)
+    return result.stdout
+
+
+def main():
+    for command in ("fzf", "iwctl"):
+        if not shutil.which(command):
+            raise RuntimeError(f"Required command not found: {command}")
+    # Discover interfaces without parsing the human-readable device table.
+    devices = sorted(p.name for p in Path("/sys/class/net").iterdir()
+                     if (p / "wireless").exists() or (p / "phy80211").exists())
+    if not devices:
+        message("Wi-Fiインターフェースがありません")
+        return
+    device = devices[0] if len(devices) == 1 else menu("インターフェース", devices)
+    if device not in devices:
+        return
+    while True:
+        actions = ["ネットワークを検索・接続", "切断", "Wi-Fiをオン", "Wi-Fiをオフ"]
+        choice = menu(f"Wi-Fi ({device})", actions)
+        if choice not in actions:
+            return
+        if choice == actions[1]:
+            require(iwctl("station", device, "disconnect"))
+            return
+        if choice in actions[2:]:
+            require(iwctl("device", device, "set-property", "Powered",
+                          "on" if choice == actions[2] else "off"))
+            return
+        require(iwctl("device", device, "set-property", "Powered", "on"))
+        require(iwctl("station", device, "scan"))
+        # A scan is asynchronous; wait for iwd to finish before reading results.
+        deadline = time.monotonic() + 15
+        while True:
+            status = require(iwctl("station", device, "show"))
+            if not re.search(r"\bScanning\s+yes\b", status, re.I):
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError("Wi-Fi scan timed out")
+            time.sleep(0.3)
+        output = require(iwctl("station", device, "get-networks"))
+        networks = {}
+        for line in output.splitlines():
+            # Split from the right, preserving spaces and punctuation in SSIDs.
+            match = re.match(r"^\s*(?:(>)\s+)?(.+?)\s{2,}(open|psk|8021x)\s+(.+?)\s*$", line)
+            if match:
+                active, ssid, security, signal = match.groups()
+                label = f"{'●' if active else '○'} {ssid}  [{security}]  {signal}"
+                networks[label] = (ssid, security)
+        if not networks:
+            message("ネットワークが見つかりません。再検索してください")
+            continue
+        selected = menu("接続先を選択", list(networks))
+        if selected not in networks:
+            return
+        ssid, security = networks[selected]
+        command = ("station", device, "connect", ssid, security)
+        result = iwctl(*command)  # Reuse iwd's saved credentials first.
+        if result.returncode and security == "psk":
+            password = menu(f"パスワード: {ssid}", password=True)
+            if not password:
+                return
+            result = iwctl(f"--passphrase={password}", *command)
+            del password
+        if result.returncode and security == "8021x":
+            message("802.1Xはiwdの.networkファイルで認証設定を用意してください")
+            return
+        require(result)
+        message(f"接続しました: {ssid}")
+        return
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        print("\nキャンセルしました", file=sys.stderr)
+        sys.exit(0)
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as error:
+        # TimeoutExpired includes argv, which may contain a passphrase.
+        text = "iwdの応答がタイムアウトしました" if isinstance(error, subprocess.TimeoutExpired) else str(error)
+        print(text, file=sys.stderr)
+        sys.exit(1)
