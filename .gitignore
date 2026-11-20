@@ -1,0 +1,6 @@
+# fcitx5 が自動生成するキャッシュ(シンボリックリンク経由で書き換わる)
+repository/fcitx5/config/conf/cached_layouts
+
+# Python キャッシュ
+__pycache__/
+*.pyc
