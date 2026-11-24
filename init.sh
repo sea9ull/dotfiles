@@ -18,6 +18,14 @@ if [ ! -d "$XDG_CONFIG_HOME" ]; then
     mkdir -p "$XDG_CONFIG_HOME"
 fi
 
+# 張ったリンクの一覧 (マニフェスト) をマシンローカルに記録し、
+# 次回実行時に「前回は張ったが今回は対象外」のリンクを削除する
+STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles
+MANIFEST=$STATE_DIR/links
+NEW_MANIFEST=$MANIFEST.new
+mkdir -p "$STATE_DIR"
+: > "$NEW_MANIFEST"
+
 # $1 以下のツリーを $2 以下へミラーしてシンボリックリンクを張る
 # - 隠しファイル・隠しディレクトリ (.dest 等のメタデータ) は対象外
 # - ファイル名先頭の `_` は `.` に読み替える (例: _vimrc -> .vimrc)
@@ -35,6 +43,7 @@ function link_tree() {
         mkdir -p "$dest_dir"
         echo "[bind] $file ==> $dest_dir/$name"
         ln -sfn "$file" "$dest_dir/$name"
+        echo "$dest_dir/$name" >> "$NEW_MANIFEST"
     done
 }
 
@@ -67,3 +76,22 @@ grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$APPS" | while read -r app; do
         link_tree "$HOST_DIR/$app" "$dest"
     fi
 done
+
+# 前回のマニフェストにあって今回張らなかったリンクを削除する
+# (このリポジトリを指すシンボリックリンクのままの場合のみ)
+if [ -f "$MANIFEST" ]; then
+    comm -23 <(sort -u "$MANIFEST") <(sort -u "$NEW_MANIFEST") | while read -r link; do
+        if [ -L "$link" ]; then
+            case "$(readlink "$link")" in
+                "$DOTFILES_DIR"/*)
+                    echo "[unbind] $link"
+                    rm "$link"
+                    # 空になったディレクトリは転送先側から順に削除を試みる
+                    rmdir -p --ignore-fail-on-non-empty "$(dirname "$link")" 2>/dev/null
+                    ;;
+            esac
+        fi
+    done
+fi
+sort -u "$NEW_MANIFEST" > "$MANIFEST"
+rm "$NEW_MANIFEST"

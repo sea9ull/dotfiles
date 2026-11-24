@@ -7,7 +7,7 @@ mpv
 nvim
 ranger
 wofi
-zathura
 zsh
+zathura
 scripts
 applications
