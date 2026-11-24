@@ -6,8 +6,20 @@
 ./init.sh
 ```
 
-`active_list.txt` に書かれたアプリの設定を `repository/<app>/` から
-`~/.config` などへシンボリックリンクします。
+`active_list.txt` に書かれた各アプリについて、`repository/<app>/` の中身を
+転送先へそのままミラーしてシンボリックリンクします。
+
+## リポジトリの構造ルール
+
+- **転送先はデフォルトで `~/.config/<アプリ名>/`**。フォルダ名がそのまま
+  転送先のフォルダ名になる(例: `repository/hypr/` → `~/.config/hypr/`)
+- それ以外へ転送したいアプリは、フォルダ直下の **`.dest` ファイル**に
+  転送先を1行書く(環境変数可。例: `vim/.dest` の中身は `$HOME`)
+- ファイル名先頭の `_` はリンク時に `.` へ読み替える
+  (例: `vim/_vimrc` → `~/.vimrc`)
+- `.` で始まるファイル・ディレクトリはメタデータ扱いでリンクされない
+- `home/` は特定アプリに属さない home 直下のドットファイル置き場
+  (`.dest` が `$HOME`)
 
 ## マシンごとの差分 (hosts/)
 
@@ -16,11 +28,11 @@
 
 - `hosts/<hostname>/active_list.txt` があれば、ルートの `active_list.txt`
   より優先して使う(マシンごとに有効化するアプリを変えられる)
-- `hosts/<hostname>/<app>/config/...` にあるファイルは、共通設定のリンクを
-  張った**後に**同じリンク先へ上書きリンクする(ファイル単位の差し替え)
+- `hosts/<hostname>/<app>/...` にあるファイルは、共通設定のリンクを
+  張った**後に**同じ転送先へ上書きリンクする(ファイル単位の差し替え)
 
-例: このリポジトリでは `hosts/GlossyGorilla/hypr/config/monitors.lua` が
-共通の `repository/hypr/config/monitors.lua`(フォールバック)を上書きします。
+例: このリポジトリでは `hosts/GlossyGorilla/hypr/monitors.lua` が
+共通の `repository/hypr/monitors.lua`(フォールバック)を上書きします。
 モニタ構成や入力デバイスなどマシン固有の設定はここに置いてください。
 
 新しいマシンでの導入手順:
@@ -47,7 +59,7 @@ git add -p && git commit && git push   # 設定を変えたら
 
 `wofi`、Python 3、起動済みの `iwd` が必要です。`active_list.txt` に
 `wofi` を追加して `./init.sh` を実行すると、次のコマンドで起動できます。
-リポジトリから直接 `./repository/wofi/config/wifi` を実行しても利用できます。
+リポジトリから直接 `./repository/wofi/wifi` を実行しても利用できます。
 
 ```bash
 ~/.config/wofi/wifi
@@ -87,12 +99,9 @@ EXIF（撮影情報）とICCプロファイルは保存時に引き継ぎます�
 ./repository/scripts/picrop 写真.jpg
 ```
 
-PATHに置く場合とファイルマネージャから開けるようにする場合:
-
-```bash
-ln -s ~/env/dotfiles/repository/scripts/picrop ~/.local/bin/picrop
-ln -s ~/env/dotfiles/repository/scripts/picrop.desktop ~/.local/share/applications/picrop.desktop
-```
+`active_list.txt` に `scripts`(→ `~/.local/bin`)と `applications`
+(→ `~/.local/share/applications`)を入れて `./init.sh` を実行すると、
+PATH への配置とファイルマネージャからの起動が有効になります。
 
 主なキー操作: `C` 切り抜き開始（ドラッグで範囲作成、`M` 中央揃え、`Enter` 適用、`Esc` 取消）、
 `R` / `Shift+R` 右・左回転、`H` / `V` 左右・上下反転、`Ctrl+Z` / `Ctrl+Y` 取り消し・やり直し、

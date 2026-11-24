@@ -2,7 +2,6 @@
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 DOTFILES_DIR=$SCRIPT_DIR
-# DOTFILES_DIR=$HOME/env/dotfiles
 REPOSITORY=$DOTFILES_DIR/repository
 HOST_NAME=$(uname -n)
 HOST_DIR=$DOTFILES_DIR/hosts/$HOST_NAME
@@ -15,98 +14,56 @@ else
     APPS=$DOTFILES_DIR/active_list.txt
 fi
 
-if [ ! -d $XDG_CONFIG_HOME ]; then
-    mkdir $XDG_CONFIG_HOME
+if [ ! -d "$XDG_CONFIG_HOME" ]; then
+    mkdir -p "$XDG_CONFIG_HOME"
 fi
 
-function print_debug (){
-    #DEBUG=1
-    DEBUG=
-    if [ -n "$DEBUG" ]; then
-        echo $1
-    fi
-}
-
-function bind_dir() {
+# $1 以下のツリーを $2 以下へミラーしてシンボリックリンクを張る
+# - 隠しファイル・隠しディレクトリ (.dest 等のメタデータ) は対象外
+# - ファイル名先頭の `_` は `.` に読み替える (例: _vimrc -> .vimrc)
+#   ただし `__init__.py` のような `__` 始まりはそのまま
+function link_tree() {
     src="$1"
-    dst="$2"
-    if [ ! -d "$dst" ]; then
-        mkdir -p "$dst"
-    fi
-    find $src -type f | while read -r config; do
-        dst_dir=$(dirname $config | sed "s;$src;$dst;")
-        dst_file=$(basename $config)
-        if [ ! -d "$dst_dir" ]; then
-            mkdir -p $dst_dir
+    dest="$2"
+    find "$src" -name '.*' -prune -o -type f -print | while read -r file; do
+        rel="${file#$src/}"
+        dest_dir=$(dirname "$dest/$rel")
+        name=$(basename "$file")
+        if [ "${name:0:1}" = "_" ] && [ "${name:0:2}" != "__" ]; then
+            name=".${name:1}"
         fi
-        if [ "${dst_file:0:1}" == "_" ]; then
-            dst_file=".${dst_file:1}"
-        fi
-        bind_file "$config" "$dst_dir/$dst_file"
+        mkdir -p "$dest_dir"
+        echo "[bind] $file ==> $dest_dir/$name"
+        ln -sfn "$file" "$dest_dir/$name"
     done
 }
 
-function bind_file() {
-    base="$1"
-    link="$2"
-    echo "[bind] $src ==> $link"
-    ln -sf "$base" "$link" 
-}
-
-function bind_config() {
-    PARAMS=(${1//:/ })
-    from=${PARAMS[0]}
-    to=${PARAMS[1]}
-    if [ -n "$from" ] && [ -n "$to" ]; then
-        if [ -d "$from" ]; then
-            bind_dir "$from" "$to"
-        fi
-        if [ ! -d "$from" ] && [ -e "$from" ]; then
-            bind_file "$from" "$to"
-        fi
+# アプリの転送先を決める: .dest ファイルがあればその内容 (環境変数可)、
+# なければ $XDG_CONFIG_HOME/<アプリ名>
+function app_dest() {
+    app="$1"
+    if [ -f "$REPOSITORY/$app/.dest" ]; then
+        eval echo "$(cat "$REPOSITORY/$app/.dest")"
+    elif [ -f "$HOST_DIR/$app/.dest" ]; then
+        eval echo "$(cat "$HOST_DIR/$app/.dest")"
     else
-        print_debug "[error] invalid parameter : $1"
+        echo "$XDG_CONFIG_HOME/$app"
     fi
 }
 
-cat $APPS | while read line; do
-    ARR=(${line//\// })
-    app=${ARR[0]}
-    theme=${ARR[1]}
-
-    if [ -z "$theme" ]; then
-        theme="default"
+# 空行と # コメントを除いた各行がアプリ名
+grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$APPS" | while read -r app; do
+    if [ ! -d "$REPOSITORY/$app" ] && [ ! -d "$HOST_DIR/$app" ]; then
+        echo "[skip] no such app : $app"
+        continue
     fi
-    theme="$theme.theme"
-    settings=$REPOSITORY/$app
-
-    if [ -e $settings/$theme ]; then
-        BIND_CONFIG=
-        BIND_HOME=
-        print_debug "[load] $settings/$theme"
-        source $settings/$theme
-        ## at XDG Config Directory
-        if [ -n "$BIND_CONFIG" ]; then
-            print_debug "[bind-config] $BIND_CONFIG"
-            bind_config "$settings/$BIND_CONFIG"
-        fi
-        ## at Home Directory
-        if [ -n "$BIND_HOME" ]; then
-            print_debug "[bind-home] $BIND_HOME"
-            bind_config "$settings/$BIND_HOME"
-        fi
-        ## ホスト別オーバーライド (hosts/<hostname>/<app>/ 以下の同名ファイルで上書き)
-        if [ -d "$HOST_DIR/$app" ]; then
-            if [ -n "$BIND_CONFIG" ]; then
-                print_debug "[bind-host-config] $HOST_DIR/$app/$BIND_CONFIG"
-                bind_config "$HOST_DIR/$app/$BIND_CONFIG"
-            fi
-            if [ -n "$BIND_HOME" ]; then
-                print_debug "[bind-host-home] $HOST_DIR/$app/$BIND_HOME"
-                bind_config "$HOST_DIR/$app/$BIND_HOME"
-            fi
-        fi
-    else
-        print_debug "no theme exists [$settings/$theme]"
+    dest=$(app_dest "$app")
+    # 共通設定
+    if [ -d "$REPOSITORY/$app" ]; then
+        link_tree "$REPOSITORY/$app" "$dest"
+    fi
+    # ホスト別オーバーライド (同名ファイルを後から上書きリンク)
+    if [ -d "$HOST_DIR/$app" ]; then
+        link_tree "$HOST_DIR/$app" "$dest"
     fi
 done

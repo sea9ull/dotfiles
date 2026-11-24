@@ -71,9 +71,10 @@ setopt EXTENDED_GLOB
 #=============================
 
 #unix utills
-alias ls='ls -F --color=auto'
-alias ll='ls -lh --time-style=+\[%Y/%m/%d\ %H:%M\]'
-alias la='ls -alh --time-style=+\[%Y/%m/%d\ %H:%M\]'
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -la --icons --group-directories-first --git'
+alias la='eza -lah --icons --group-directories-first --git --time-style=+\[%Y/%m/%d\ %H:%M\]'
+alias lt='eza --tree --level=2 --icons'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'

@@ -1,1 +1,0 @@
-BIND_HOME="_tmux.conf:$HOME/.tmux.conf"

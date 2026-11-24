@@ -1,1 +1,13 @@
+environment
+fcitx5
 hypr
+kitty
+mpd
+mpv
+nvim
+ranger
+wofi
+zathura
+zsh
+scripts
+applications

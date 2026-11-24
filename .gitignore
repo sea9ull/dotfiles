@@ -1,5 +1,14 @@
 # fcitx5 が自動生成するキャッシュ(シンボリックリンク経由で書き換わる)
-repository/fcitx5/config/conf/cached_layouts
+repository/fcitx5/conf/cached_layouts
+
+# zsh のコンパイル済みファイル・補完キャッシュ
+repository/zsh/_zcompdump
+*.zwc
+
+# ranger が実行時に書き換える状態ファイル
+repository/ranger/bookmarks
+repository/ranger/tagged
+repository/ranger/scope.sh.bkp
 
 # Python キャッシュ
 __pycache__/

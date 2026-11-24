@@ -1,1 +1,14 @@
+# 新しいマシン用のデフォルト (hosts/<hostname>/active_list.txt があればそちらが優先)
+environment
+fcitx5
 hypr
+kitty
+mpd
+mpv
+nvim
+ranger
+wofi
+zathura
+zsh
+scripts
+applications
